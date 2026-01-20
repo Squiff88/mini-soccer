@@ -79,3 +79,16 @@ html, body, #root {
   padding: 0;
   background-color: black;
 }
+
+@keyframes turnAround {
+  0% { 
+    background-position-y: -0px;
+    transform: scale(1.98) translateY(0); 
+    transform: rotateY(-90deg);
+  }
+  100% { 
+    background-position-y: -160px; 
+    transform: rotateY(190deg);
+    transform: scale(2.1);
+  }
+}

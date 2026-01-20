@@ -82,6 +82,7 @@ const styles = {
     backgroundRepeat: 'no-repeat',
     transform: 'scale(1.98)',
     imageRendering: 'pixelated',
+    animation: 'turnAround 2s ease-in-out forwards'
   },
   label: {
     display: 'block',
@@ -273,7 +274,12 @@ const styles = {
     boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
     cursor: 'pointer',
   },
+  
 };
+
+const skeleAvatars = ['16102', '11355', '15710']
+
+
 
 const diffConfig = {
   easy: { aiSpeed: 3, playerSpeed: 3, ballFriction: 0.98, aiIntelligence: 1.5, shootForce: 18 },
@@ -293,6 +299,32 @@ const signs = [
   { r: 2, c: 1, text: "Meebin!" }
 ];
 
+
+const MeebitAvatar = React.memo(({ id, loaded }) => {
+  // Debug: If this shows in console, the component is trying to render
+  console.log("Rendering Meebit:", id); 
+
+  return (
+    <div key={id} style={{ 
+      ...styles.avatarCircle, 
+      perspective: '1000px' 
+    }}>
+      {!loaded && <div style={styles.avatarLoading}>LOADING...</div>}
+      {loaded && (
+        <div 
+          style={{ 
+            ...styles.avatarSprite, 
+            backgroundImage: `url(https://corsproxy.io/?${encodeURIComponent(`https://files.meebits.app/sprites/${id}.png`)})`, 
+          backgroundPositionX: '0px',
+          transformOrigin: 'center bottom',
+          }} 
+        />
+      )}
+    </div>
+  );
+}, (prev, next) => prev.id === next.id && prev.loaded === next.loaded);
+
+
 const MiniSoccer = () => {
   const canvasRef = useRef(null);
   const [gameState, setGameState] = useState('menu');
@@ -310,9 +342,12 @@ const MiniSoccer = () => {
 
   const [spriteLoaded, setSpriteLoaded] = useState(false);
   const [aiSpriteLoaded, setAiSpriteLoaded] = useState(false);
+  const [introAnimation, setIntroAnimation] = useState(null);
 
   const spriteImageRef = useRef(null);
   const aiSpriteImageRef = useRef(null);
+
+  const crowdAudioRef = useRef(null); // ADD THIS
 
   const CROWD_HEIGHT = 120;
   const CROWD_ROWS = 3;
@@ -330,7 +365,6 @@ const MiniSoccer = () => {
   const SPRITE_SCALE = 0.6;
   const PLAYER_SIZE = SPRITE_WIDTH * SPRITE_SCALE;
   const BALL_RADIUS = 14;
-  // const WINNING_SCORE = 3;
 
   const gameRef = useRef({
     players: [
@@ -390,6 +424,8 @@ const MiniSoccer = () => {
         });
       });
 
+      setIntroAnimation('walkInAndPose 0.8s ease-out forwards')
+
       await Promise.all(promises);
       crowdSpritesRef.current = sprites;
       setCrowdLoaded(true);
@@ -412,41 +448,31 @@ const MiniSoccer = () => {
   useEffect(() => { loadSpriteAsset(meebitNumber, true); }, [meebitNumber]);
   useEffect(() => { loadSpriteAsset(aiMeebitNumber, false); }, [aiMeebitNumber]);
 
-  useEffect(() => {
-    if (gameState !== 'playing') return;
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const bufferSize = audioCtx.sampleRate * 2;
-    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-    const data = buffer.getChannelData(0);
-    let lastOut = 0.0;
-    for (let i = 0; i < bufferSize; i++) {
-      let white = Math.random() * 2 - 1;
-      data[i] = (lastOut + (0.02 * white)) / 1.02;
-      lastOut = data[i];
-      data[i] *= 4.5;
+
+useEffect(() => {
+  // Initialize the audio object if it doesn't exist
+  if (!crowdAudioRef.current) {
+    crowdAudioRef.current = new Audio('../cheering-sounds.wav');
+    crowdAudioRef.current.loop = true;
+    crowdAudioRef.current.volume = 0.3; // Adjust volume as needed
+  }
+
+  if (gameState === 'playing') {
+    // Play when game starts
+    crowdAudioRef.current.play().catch(e => console.log("Audio play blocked by browser:", e));
+  } else {
+    // Pause and reset when in Menu or Game Over
+    crowdAudioRef.current.pause();
+    crowdAudioRef.current.currentTime = 0;
+  }
+
+  // Cleanup on unmount
+  return () => {
+    if (crowdAudioRef.current) {
+      crowdAudioRef.current.pause();
     }
-    const roar = audioCtx.createBufferSource();
-    roar.buffer = buffer;
-    roar.loop = true;
-    const lowPass = audioCtx.createBiquadFilter();
-    lowPass.type = 'lowpass';
-    lowPass.frequency.value = 500;
-    const resonance = audioCtx.createBiquadFilter();
-    resonance.type = 'peaking';
-    resonance.frequency.value = 200;
-    resonance.Q.value = 3;
-    resonance.gain.value = 5;
-    const roarGain = audioCtx.createGain();
-    roarGain.gain.value = 0.18;
-    roar.connect(resonance);
-    resonance.connect(lowPass);
-    lowPass.connect(roarGain);
-    roarGain.connect(audioCtx.destination);
-    roar.start();
-    return () => { roar.stop(); audioCtx.close(); };
-  }, [gameState]);
-
-
+  };
+}, [gameState]);
 
   const getDirectionRow = (dirX, dirY) => {
     const angle = Math.atan2(dirY, dirX);
@@ -497,7 +523,7 @@ const MiniSoccer = () => {
     }
     if (!crowdLoaded) return;
     const time = Date.now() / 1500;
-    const fanSize = 75;
+    const fanSize = 85;
     const spacing = FIELD_WIDTH / (FANS_PER_ROW + 1);
 
 
@@ -772,15 +798,39 @@ const MiniSoccer = () => {
     setGameState('menu');
   };
 
-  const MeebitAvatar = ({ id, loaded }) => (
-    <div style={styles.avatarCircle}>
-      {!loaded && <div style={styles.avatarLoading}>LOADING...</div>}
-      <div style={{ ...styles.avatarSprite, backgroundImage: `url(https://corsproxy.io/?${encodeURIComponent(`https://files.meebits.app/sprites/${id}.png`)})`, backgroundPosition: '0 -204px', opacity: loaded ? 1 : 0 }} />
-    </div>
-  );
+  // const MeebitAvatar = ({ id, loaded }) => (
+  //   <div style={styles.avatarCircle}>
+  //     {!loaded && <div style={styles.avatarLoading}>LOADING...</div>}
+  //     <div style={{ ...styles.avatarSprite, backgroundImage: `url(https://corsproxy.io/?${encodeURIComponent(`https://files.meebits.app/sprites/${id}.png`)})`, backgroundPosition: '0 -204px', opacity: loaded ? 1 : 0 }} />
+  //   </div>
+  // );
+
+//   const MeebitAvatar = ({ id, loaded }) => (
+//   // The 'key' ensures the animation restarts when the ID changes
+//   <div key={id} style={{ 
+//     ...styles.avatarCircle,
+//     animation: introAnimation
+//   }}>
+//     {!loaded && <div style={styles.avatarLoading}>LOADING...</div>}
+//     <div 
+// style={{ 
+//           ...styles.avatarSprite, 
+//           backgroundImage: `url(https://corsproxy.io/?${encodeURIComponent(`https://files.meebits.app/sprites/${id}.png`)})`, 
+//           backgroundPositionX: '0px',
+//           transformOrigin: 'center bottom',
+//           /* 0.6s duration
+//              ease-in-out for the jump physics
+//              forwards to keep them facing front
+//           */
+//         }}
+//     />
+//   </div>
+// );
 
   if (gameState === 'menu') {
     const isAssetsReady = spriteLoaded && aiSpriteLoaded && crowdLoaded;
+
+    console.log(isAssetsReady, 'isAssetsReady ??????')
     return (
       <div style={styles.menuContainer}>
         <h1 style={styles.title}>Meebits Mini Soccer</h1>
