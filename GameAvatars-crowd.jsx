@@ -275,36 +275,45 @@ const styles = {
   },
 };
 
-  const diffConfig = {
-    easy: { aiSpeed: 3, playerSpeed: 3, ballFriction: 0.98, aiIntelligence: 1.5, shootForce: 18 },
-    medium: { aiSpeed: 4, playerSpeed: 4, ballFriction: 0.985, aiIntelligence: 1.75, shootForce: 21 },
-    hard: { aiSpeed: 3.5, playerSpeed: 3.5, ballFriction: 0.99, aiIntelligence: 1.75, shootForce: 25 }
-  };
+const diffConfig = {
+  easy: { aiSpeed: 3, playerSpeed: 3, ballFriction: 0.98, aiIntelligence: 1.5, shootForce: 18 },
+  medium: { aiSpeed: 4, playerSpeed: 4, ballFriction: 0.985, aiIntelligence: 1.75, shootForce: 21 },
+  hard: { aiSpeed: 4, playerSpeed: 4, ballFriction: 0.99, aiIntelligence: 2, shootForce: 25 },
+  "30": { duration: 30 },
+  "60": { duration: 60 },
+  "90": { duration: 90 },
 
-      const signs = [
-      { r: 0, c: 2, text: "Meebits are fun!" },
-      { r: 0, c: 11, text: "Meebits are art!" },
-      { r: 1, c: 4, text: "Meebits are art!" },
-      { r: 1, c: 9, text: "Meebits are fun!" },
-      { r: 2, c: 1, text: "Meebin!" }
-    ];
+};
+
+const signs = [
+  { r: 0, c: 2, text: "Meebits are fun!" },
+  { r: 0, c: 11, text: "Meebits are art!" },
+  { r: 1, c: 4, text: "Meebits are art!" },
+  { r: 1, c: 9, text: "Meebits are fun!" },
+  { r: 2, c: 1, text: "Meebin!" }
+];
 
 const MiniSoccer = () => {
   const canvasRef = useRef(null);
-  const [gameState, setGameState] = useState('menu'); 
+  const [gameState, setGameState] = useState('menu');
   const [difficulty, setDifficulty] = useState('medium');
+
+  // ADD:
+  const [gameMode, setGameMode] = useState('30');
+  const [timeRemaining, setTimeRemaining] = useState(30);
+
   const [playerScore, setPlayerScore] = useState(0);
   const [aiScore, setAiScore] = useState(0);
-  
+
   const [meebitNumber, setMeebitNumber] = useState('2446');
   const [aiMeebitNumber, setAiMeebitNumber] = useState('17600');
-  
+
   const [spriteLoaded, setSpriteLoaded] = useState(false);
   const [aiSpriteLoaded, setAiSpriteLoaded] = useState(false);
-  
+
   const spriteImageRef = useRef(null);
   const aiSpriteImageRef = useRef(null);
-  
+
   const CROWD_HEIGHT = 120;
   const CROWD_ROWS = 3;
   const FANS_PER_ROW = 14;
@@ -313,15 +322,15 @@ const MiniSoccer = () => {
   const [crowdLoaded, setCrowdLoaded] = useState(false);
 
   const FIELD_WIDTH = 800;
-  const FIELD_HEIGHT = 500 + CROWD_HEIGHT; 
+  const FIELD_HEIGHT = 500 + CROWD_HEIGHT;
   const GOAL_WIDTH = 25;
   const GOAL_HEIGHT = 160;
   const SPRITE_WIDTH = 85;
   const SPRITE_HEIGHT = 85;
-  const SPRITE_SCALE = 0.6; 
-  const PLAYER_SIZE = SPRITE_WIDTH * SPRITE_SCALE; 
+  const SPRITE_SCALE = 0.6;
+  const PLAYER_SIZE = SPRITE_WIDTH * SPRITE_SCALE;
   const BALL_RADIUS = 14;
-  const WINNING_SCORE = 3;
+  // const WINNING_SCORE = 3;
 
   const gameRef = useRef({
     players: [
@@ -337,9 +346,10 @@ const MiniSoccer = () => {
     selectedPlayer: 0,
     possessor: null,
     isPaused: false,
-    stuckTimer: 0
+    stuckTimer: 0,
+    gameStartTime: null
   });
-  
+
   const animationRef = useRef(null);
 
   const resetPositions = () => {
@@ -363,7 +373,7 @@ const MiniSoccer = () => {
     const loadCrowd = async () => {
       const sprites = [];
       const randomIds = Array.from({ length: CROWD_COUNT }, () => Math.floor(Math.random() * 20000));
-      
+
       const promises = randomIds.map(id => {
         return new Promise((resolve) => {
           const img = new Image();
@@ -420,7 +430,7 @@ const MiniSoccer = () => {
     roar.loop = true;
     const lowPass = audioCtx.createBiquadFilter();
     lowPass.type = 'lowpass';
-    lowPass.frequency.value = 500; 
+    lowPass.frequency.value = 500;
     const resonance = audioCtx.createBiquadFilter();
     resonance.type = 'peaking';
     resonance.frequency.value = 200;
@@ -437,6 +447,7 @@ const MiniSoccer = () => {
   }, [gameState]);
 
 
+
   const getDirectionRow = (dirX, dirY) => {
     const angle = Math.atan2(dirY, dirX);
     const deg = (angle * 180 / Math.PI + 360) % 360;
@@ -451,15 +462,15 @@ const MiniSoccer = () => {
     const isLoaded = player.team === 'player' ? spriteLoaded : aiSpriteLoaded;
     if (!img || !isLoaded) {
       ctx.fillStyle = player.team === 'player' ? 'rgba(255, 255, 0, 0.5)' : 'rgba(0, 255, 255, 0.5)';
-      ctx.beginPath(); ctx.arc(player.x, player.y, PLAYER_SIZE/2, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(player.x, player.y, PLAYER_SIZE / 2, 0, Math.PI * 2); ctx.fill();
       return;
     }
     const isMoving = Math.abs(player.vx) > 0.1 || Math.abs(player.vy) > 0.1;
     const row = getDirectionRow(player.lastDir.x, player.lastDir.y);
     // let frameCol = isMoving ? Math.floor(player.frame * 0.4) % 2 : 0;
 
-    const walkCycle = [0, 1, 2, 1]; 
-let frameCol = isMoving ? walkCycle[Math.floor(player.frame / 2) % 4] : 0;
+    const walkCycle = [0, 1, 2, 1];
+    let frameCol = isMoving ? walkCycle[Math.floor(player.frame / 2) % 4] : 0;
 
     const sx = frameCol * SPRITE_WIDTH;
     const sy = row * SPRITE_HEIGHT;
@@ -486,7 +497,7 @@ let frameCol = isMoving ? walkCycle[Math.floor(player.frame / 2) % 4] : 0;
     }
     if (!crowdLoaded) return;
     const time = Date.now() / 1500;
-    const fanSize = 75; 
+    const fanSize = 75;
     const spacing = FIELD_WIDTH / (FANS_PER_ROW + 1);
 
 
@@ -494,7 +505,7 @@ let frameCol = isMoving ? walkCycle[Math.floor(player.frame / 2) % 4] : 0;
       for (let c = 0; c < FANS_PER_ROW; c++) {
         const fan = crowdSpritesRef.current[r * FANS_PER_ROW + c];
         if (!fan) continue;
-        const jump = Math.sin(time * 5 + fan.offset) * 2; 
+        const jump = Math.sin(time * 5 + fan.offset) * 2;
         const stagger = (r % 2) * (spacing / 2);
         const x = spacing * (c + 1) - fanSize / 2 + stagger;
         const y = 5 + (r * 32) + jump;
@@ -530,7 +541,7 @@ let frameCol = isMoving ? walkCycle[Math.floor(player.frame / 2) % 4] : 0;
     if (gameState !== 'playing') return;
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
-    const settings = diffConfig[difficulty];
+    const settings = { ...diffConfig[difficulty], ...diffConfig[gameMode] };
 
     const shootBall = (force) => {
       const game = gameRef.current;
@@ -538,10 +549,10 @@ let frameCol = isMoving ? walkCycle[Math.floor(player.frame / 2) % 4] : 0;
       const p = game.players[game.possessor];
       game.ball.vx = p.lastDir.x * force;
       game.ball.vy = p.lastDir.y * force;
-      p.shotTimer = 25; 
+      p.shotTimer = 25;
       game.possessor = null;
     };
-    
+
     const handleKeyDown = (e) => {
       const key = e.key.toLowerCase();
       gameRef.current.keys[key] = true;
@@ -561,7 +572,14 @@ let frameCol = isMoving ? walkCycle[Math.floor(player.frame / 2) % 4] : 0;
     const gameLoop = () => {
       const game = gameRef.current;
       const ball = game.ball;
-      if (playerScore >= WINNING_SCORE || aiScore >= WINNING_SCORE) {
+      if (!game.gameStartTime) {
+        game.gameStartTime = Date.now();
+      }
+      const elapsedSeconds = (Date.now() - game.gameStartTime) / 1000;
+      const remaining = settings.duration - elapsedSeconds;
+      setTimeRemaining(Math.max(0, remaining));
+
+      if (remaining <= 0) {
         setGameState('gameOver');
         return;
       }
@@ -570,11 +588,11 @@ let frameCol = isMoving ? walkCycle[Math.floor(player.frame / 2) % 4] : 0;
       if (!game.isPaused) {
         const isOutOfBounds = ball.x < -20 || ball.x > FIELD_WIDTH + 20 || ball.y < CROWD_HEIGHT - 20 || ball.y > FIELD_HEIGHT + 20;
         const isStuck = Math.abs(ball.vx) < 0.05 && Math.abs(ball.vy) < 0.05 && game.possessor === null;
-        
+
         if (isStuck) game.stuckTimer++; else game.stuckTimer = 0;
-        
+
         if (isOutOfBounds || game.stuckTimer > 180) {
-           resetPositions();
+          resetPositions();
         }
 
 
@@ -612,9 +630,9 @@ let frameCol = isMoving ? walkCycle[Math.floor(player.frame / 2) % 4] : 0;
             ai.animTimer++; if (ai.animTimer % 4 === 0) ai.frame++;
           }
           ai.vx *= 0.88; ai.vy *= 0.88;
-          const ballDist = Math.sqrt((ball.x - ai.x)**2 + (ball.y - ai.y)**2);
-          if (ballDist < PLAYER_SIZE/2 + BALL_RADIUS) {
-            game.possessor = null; 
+          const ballDist = Math.sqrt((ball.x - ai.x) ** 2 + (ball.y - ai.y) ** 2);
+          if (ballDist < PLAYER_SIZE / 2 + BALL_RADIUS) {
+            game.possessor = null;
             const angle = Math.atan2(ball.y - ai.y, ball.x - ai.x);
             const kickPower = 8 + (settings.aiIntelligence * 6);
             ball.vx = Math.cos(angle) * kickPower; ball.vy = Math.sin(angle) * kickPower;
@@ -623,31 +641,31 @@ let frameCol = isMoving ? walkCycle[Math.floor(player.frame / 2) % 4] : 0;
 
         [...game.players, ...game.ai].forEach(p => {
           p.x += p.vx; p.y += p.vy;
-          p.x = Math.max(PLAYER_SIZE/2, Math.min(FIELD_WIDTH - PLAYER_SIZE/2, p.x));
-          p.y = Math.max(CROWD_HEIGHT + PLAYER_SIZE/2, Math.min(FIELD_HEIGHT - PLAYER_SIZE/2, p.y));
+          p.x = Math.max(PLAYER_SIZE / 2, Math.min(FIELD_WIDTH - PLAYER_SIZE / 2, p.x));
+          p.y = Math.max(CROWD_HEIGHT + PLAYER_SIZE / 2, Math.min(FIELD_HEIGHT - PLAYER_SIZE / 2, p.y));
         });
 
         if (game.possessor !== null) {
           const p = game.players[game.possessor];
-           const playerspeed = settings.playerSpeed;
-          ball.rotation += playerspeed * 0.15; 
+          const playerspeed = settings.playerSpeed;
+          ball.rotation += playerspeed * 0.15;
           // 1. Update Ball Position relative to Player
-          ball.x = p.x + p.lastDir.x * (PLAYER_SIZE/2 + 5);
-          ball.y = p.y + p.lastDir.y * (PLAYER_SIZE/2 + 5);
-          ball.vx = p.vx; 
+          ball.x = p.x + p.lastDir.x * (PLAYER_SIZE / 2 + 5);
+          ball.y = p.y + p.lastDir.y * (PLAYER_SIZE / 2 + 5);
+          ball.vx = p.vx;
           ball.vy = p.vy;
-          const speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy); 
+          const speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
 
           // Only rotate if the player (and thus the ball) is actually moving
           if (speed > 0.1) {
             // The 0.15 multiplier determines how fast it spins relative to movement speed
-            ball.rotation += speed * 0.15; 
+            ball.rotation += speed * 0.15;
           }
         } else {
           game.players.forEach((p, idx) => {
             if (p.shotTimer === 0) {
-              const dist = Math.sqrt((ball.x - p.x)**2 + (ball.y - p.y)**2);
-              if (dist < PLAYER_SIZE/2 + BALL_RADIUS + 2) game.possessor = idx;
+              const dist = Math.sqrt((ball.x - p.x) ** 2 + (ball.y - p.y) ** 2);
+              if (dist < PLAYER_SIZE / 2 + BALL_RADIUS + 2) game.possessor = idx;
             }
           });
           ball.x += ball.vx; ball.y += ball.vy;
@@ -670,13 +688,13 @@ let frameCol = isMoving ? walkCycle[Math.floor(player.frame / 2) % 4] : 0;
       drawStadium(ctx);
       ctx.fillStyle = '#162b0e'; ctx.fillRect(0, CROWD_HEIGHT, FIELD_WIDTH, 500);
       ctx.strokeStyle = 'rgba(255,255,255,0.15)'; ctx.lineWidth = 3;
-      ctx.strokeRect(10, CROWD_HEIGHT + 10, FIELD_WIDTH-20, 500-20);
-      ctx.beginPath(); ctx.moveTo(FIELD_WIDTH/2, CROWD_HEIGHT); ctx.lineTo(FIELD_WIDTH/2, FIELD_HEIGHT); ctx.stroke();
-      
+      ctx.strokeRect(10, CROWD_HEIGHT + 10, FIELD_WIDTH - 20, 500 - 20);
+      ctx.beginPath(); ctx.moveTo(FIELD_WIDTH / 2, CROWD_HEIGHT); ctx.lineTo(FIELD_WIDTH / 2, FIELD_HEIGHT); ctx.stroke();
+
       const drawGoal = (x, isPlayerSide) => {
         ctx.save(); ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)'; ctx.lineWidth = 1;
         for (let i = 0; i <= GOAL_HEIGHT; i += 12) {
-            ctx.beginPath(); ctx.moveTo(x, goalTop + i); ctx.lineTo(isPlayerSide ? x + GOAL_WIDTH : x - GOAL_WIDTH, goalTop + i); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(x, goalTop + i); ctx.lineTo(isPlayerSide ? x + GOAL_WIDTH : x - GOAL_WIDTH, goalTop + i); ctx.stroke();
         }
         ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 5; ctx.strokeRect(isPlayerSide ? 0 : FIELD_WIDTH - GOAL_WIDTH, goalTop, GOAL_WIDTH, GOAL_HEIGHT);
         ctx.restore();
@@ -684,10 +702,10 @@ let frameCol = isMoving ? walkCycle[Math.floor(player.frame / 2) % 4] : 0;
       drawGoal(0, true); drawGoal(FIELD_WIDTH, false);
       game.players.forEach((p, i) => drawSprite(ctx, p, i === game.selectedPlayer, game.possessor === i));
       game.ai.forEach((p) => drawSprite(ctx, p, false, false));
-      
+
       // PIXELATED BALL WITH BLACK SQUARED SHAPES AND CONDITIONAL ROTATION
-      ctx.save(); 
-      ctx.translate(ball.x, ball.y); 
+      ctx.save();
+      ctx.translate(ball.x, ball.y);
       ctx.rotate(ball.rotation);
 
       // Shadow for ball
@@ -697,9 +715,9 @@ let frameCol = isMoving ? walkCycle[Math.floor(player.frame / 2) % 4] : 0;
       ctx.shadowOffsetY = 2;
 
       // Ball background
-      ctx.beginPath(); 
-      ctx.arc(0, 0, BALL_RADIUS, 0, Math.PI*2);
-      ctx.fillStyle = '#fff'; 
+      ctx.beginPath();
+      ctx.arc(0, 0, BALL_RADIUS, 0, Math.PI * 2);
+      ctx.fillStyle = '#fff';
       ctx.fill();
 
       // Pixelated black squares for pattern
@@ -715,16 +733,16 @@ let frameCol = isMoving ? walkCycle[Math.floor(player.frame / 2) % 4] : 0;
       }
 
       // Border
-      ctx.strokeStyle = '#000'; 
-      ctx.lineWidth = 1; 
-      ctx.beginPath(); 
-      ctx.arc(0, 0, BALL_RADIUS, 0, Math.PI*2);
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(0, 0, BALL_RADIUS, 0, Math.PI * 2);
       ctx.stroke();
       ctx.restore();
 
       animationRef.current = requestAnimationFrame(gameLoop);
     };
-    
+
     const handleScore = (team) => {
       const g = gameRef.current; g.isPaused = true;
       if (team === 'player') setPlayerScore(s => s + 1); else setAiScore(s => s + 1);
@@ -733,74 +751,100 @@ let frameCol = isMoving ? walkCycle[Math.floor(player.frame / 2) % 4] : 0;
 
     gameLoop();
     return () => {
-      window.removeEventListener('keydown', handleKeyDown); 
+      window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
       cancelAnimationFrame(animationRef.current);
     };
   }, [gameState, difficulty, playerScore, aiScore, spriteLoaded, aiSpriteLoaded, crowdLoaded]);
 
-  const quitToMenu = () => { resetPositions(); setPlayerScore(0); setAiScore(0); setGameState('menu'); };
+  const quitToMenu = () => {
+    resetPositions();
+    setPlayerScore(0);
+    setAiScore(0);
+
+    // 1. Reset the visual timer immediately
+    setTimeRemaining(parseInt(gameMode));
+
+    // 2. CRITICAL FIX: Reset the internal timer reference
+    // This forces the next game to generate a NEW start timestamp
+    gameRef.current.gameStartTime = null;
+
+    setGameState('menu');
+  };
 
   const MeebitAvatar = ({ id, loaded }) => (
     <div style={styles.avatarCircle}>
       {!loaded && <div style={styles.avatarLoading}>LOADING...</div>}
-      <div style={{...styles.avatarSprite, backgroundImage: `url(https://corsproxy.io/?${encodeURIComponent(`https://files.meebits.app/sprites/${id}.png`)})`, backgroundPosition: '0 -204px', opacity: loaded ? 1 : 0}} />
+      <div style={{ ...styles.avatarSprite, backgroundImage: `url(https://corsproxy.io/?${encodeURIComponent(`https://files.meebits.app/sprites/${id}.png`)})`, backgroundPosition: '0 -204px', opacity: loaded ? 1 : 0 }} />
     </div>
   );
 
   if (gameState === 'menu') {
-        const isAssetsReady = spriteLoaded && aiSpriteLoaded && crowdLoaded;
+    const isAssetsReady = spriteLoaded && aiSpriteLoaded && crowdLoaded;
     return (
       <div style={styles.menuContainer}>
         <h1 style={styles.title}>Meebits Mini Soccer</h1>
-        <div style={{...styles.avatarGrid, gridTemplateColumns: window.innerWidth >= 768 ? 'repeat(2, 1fr)' : '1fr'}}>
+        <div style={{ ...styles.avatarGrid, gridTemplateColumns: window.innerWidth >= 768 ? 'repeat(2, 1fr)' : '1fr' }}>
           <div style={styles.avatarCard}>
             <MeebitAvatar id={meebitNumber} loaded={spriteLoaded} />
-            <label style={{...styles.label, ...styles.labelGreen}}>Home ID</label>
+            <label style={{ ...styles.label, ...styles.labelGreen }}>Home ID</label>
             <input type="text" value={meebitNumber} onChange={(e) => setMeebitNumber(e.target.value.replace(/\D/g, ''))} style={styles.input} />
           </div>
           <div style={styles.avatarCard}>
             <MeebitAvatar id={aiMeebitNumber} loaded={aiSpriteLoaded} />
-            <label style={{...styles.label, ...styles.labelBlue}}>Away ID</label>
+            <label style={{ ...styles.label, ...styles.labelBlue }}>Away ID</label>
             <input type="text" value={aiMeebitNumber} onChange={(e) => setAiMeebitNumber(e.target.value.replace(/\D/g, ''))} style={styles.input} />
           </div>
         </div>
+           <p style={{ ...styles.scoreText, fontSize: "22px" }}> Difficulty:</p>
         <div style={styles.difficultyGrid}>
+          
           {['easy', 'medium', 'hard'].map(lvl => (
-            <button key={lvl} onClick={() => setDifficulty(lvl)} style={difficulty === lvl ? {...styles.difficultyButton, ...styles.difficultyButtonActive} : styles.difficultyButton}>
+            <button key={lvl} onClick={() => setDifficulty(lvl)} style={difficulty === lvl ? { ...styles.difficultyButton, ...styles.difficultyButtonActive } : styles.difficultyButton}>
               <span>{lvl.toUpperCase()}</span>
             </button>
           ))}
         </div>
-        <p style={{...styles.scoreText, fontSize: "22px"}}> Controls:</p>
-        <p style={{...styles.scoreText, fontSize: "18px", textAlign: 'center'}}>Move: "WASD" | Swap: "Space" | Shoot: "Enter"</p>
-        {/* <button 
-          onClick={() => setGameState('playing')} 
-          disabled={!spriteLoaded || !aiSpriteLoaded || !crowdLoaded} 
-          style={(!spriteLoaded || !aiSpriteLoaded || !crowdLoaded) ? {...styles.kickoffButton, ...styles.kickoffButtonDisabled} : {...styles.kickoffButton, ...styles.kickoffButtonEnabled}}
-        >
-          {crowdLoaded ? "KICK OFF" : "LOADING ASSETS..."}
-        </button> */}
+          <p style={{ ...styles.scoreText, fontSize: "22px" }}> Duration:</p>
+        <div style={styles.difficultyGrid}>
+          {['30', '60', '90'].map(mode => (
+            <button
+              key={mode}
+              onClick={() => {
+                setGameMode(mode);
+                setTimeRemaining(parseInt(mode));
+              }}
+              style={gameMode === mode ? { ...styles.difficultyButton, ...styles.difficultyButtonActive } : styles.difficultyButton}
+            >
+              <span>{mode} SEC</span>
+            </button>
+          ))}
+        </div>
+        <p style={{ ...styles.scoreText, fontSize: "22px" }}> Controls:</p>
+        <p style={{ ...styles.scoreText, fontSize: "18px", textAlign: 'center' }}>Move: "WASD" | Swap: "Space" | Shoot: "Enter"</p>
 
-                <button 
-  onClick={() => setGameState('playing')} 
-  disabled={!isAssetsReady} 
-  style={!isAssetsReady ? 
-    {...styles.kickoffButton, ...styles.kickoffButtonDisabled} : 
-    {...styles.kickoffButton, ...styles.kickoffButtonEnabled}
-  }
->
-  {isAssetsReady ? "KICK OFF" : "LOADING ASSETS..."}
-</button>
+
+        <button
+          onClick={() => setGameState('playing')}
+          disabled={!isAssetsReady}
+          style={!isAssetsReady ?
+            { ...styles.kickoffButton, ...styles.kickoffButtonDisabled } :
+            { ...styles.kickoffButton, ...styles.kickoffButtonEnabled }
+          }
+        >
+          {isAssetsReady ? "KICK OFF" : "LOADING ASSETS..."}
+        </button>
       </div>
     );
   }
-  
+
   if (gameState === 'gameOver') {
     return (
       <div style={styles.gameOverContainer}>
         <Trophy size={100} color="#facc15" />
-        <h1 style={styles.gameOverTitle}>{playerScore >= WINNING_SCORE ? 'Champion!' : 'Defeated'}</h1>
+        <h1 style={styles.gameOverTitle}>
+          {playerScore > aiScore ? 'Champion!' : playerScore < aiScore ? 'Defeated' : 'Draw!'}
+        </h1>
         <button onClick={quitToMenu} style={styles.returnButton}>Return to Lobby</button>
       </div>
     );
@@ -811,7 +855,8 @@ let frameCol = isMoving ? walkCycle[Math.floor(player.frame / 2) % 4] : 0;
       <div style={styles.scoreHeader}>
         <div style={styles.scoreBox}>
           <div style={styles.scoreInner}><span style={styles.scoreText}>HOME - {playerScore} : AWAY - {aiScore}</span></div>
-          <span style={styles.modeBadge}>{difficulty} Mode</span>
+          <span style={{ ...styles.modeBadge, color: 'white', fontWeight: 'bold' }}>difficulty {difficulty}</span>
+          <span style={{ ...styles.modeBadge, color: 'white', fontWeight: 'bold', fontSize: 18 }}>{timeRemaining.toFixed(2)} sec Remaining</span>
         </div>
       </div>
       <canvas ref={canvasRef} width={FIELD_WIDTH} height={FIELD_HEIGHT} style={styles.canvas} />
