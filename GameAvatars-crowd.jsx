@@ -1,0 +1,823 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { RotateCcw, Trophy } from 'lucide-react';
+
+const styles = {
+  container: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: '100vh',
+    backgroundColor: '#000',
+    fontFamily: 'system-ui, -apple-system, sans-serif',
+    padding: '32px 16px',
+  },
+  menuContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: '110vh',
+    height: '100%',
+    backgroundColor: '#020617',
+    color: '#fff',
+    padding: '24px',
+    overflow: 'scroll'
+  },
+  title: {
+    fontSize: '6rem',
+    fontWeight: '900',
+    fontStyle: 'italic',
+    letterSpacing: '-0.05em',
+    background: "linear-gradient(to right, #2d11a2, #6163ea)",
+    WebkitBackgroundClip: 'text',
+    WebkitTextFillColor: 'transparent',
+    marginBottom: '40px',
+    marginTop: "10px",
+    textAlign: 'center',
+    padding: "20px"
+  },
+  avatarGrid: {
+    display: 'grid',
+    gridTemplateColumns: '1fr',
+    gap: '24px',
+    marginBottom: '32px',
+    width: '100%',
+    maxWidth: '672px',
+  },
+  avatarCard: {
+    backgroundColor: '#1e293b',
+    padding: '24px',
+    borderRadius: '16px',
+    border: '2px solid #334155',
+    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+  },
+  avatarCircle: {
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: '165px',
+    width: '165px',
+    backgroundColor: '#0f172a',
+    borderRadius: '50%',
+    border: '4px solid #334155',
+    overflow: 'hidden',
+    marginBottom: '16px',
+    position: 'relative',
+    margin: '0 auto',
+  },
+  avatarLoading: {
+    position: 'absolute',
+    inset: 0,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: '10px',
+    color: '#64748b',
+    animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+  },
+  avatarSprite: {
+    width: '85px',
+    height: '100%',
+    backgroundRepeat: 'no-repeat',
+    transform: 'scale(1.98)',
+    imageRendering: 'pixelated',
+  },
+  label: {
+    display: 'block',
+    fontSize: '12px',
+    fontWeight: '700',
+    marginBottom: '8px',
+    textTransform: 'uppercase',
+    letterSpacing: '0.1em',
+    textAlign: 'center',
+  },
+  labelGreen: {
+    color: '#4ade80',
+  },
+  labelBlue: {
+    color: '#60a5fa',
+  },
+  input: {
+    width: '100%',
+    padding: '12px 16px',
+    backgroundColor: '#0f172a',
+    borderRadius: '12px',
+    color: '#fff',
+    textAlign: 'center',
+    fontFamily: 'monospace',
+    fontSize: '18px',
+    outline: 'none',
+    boxSizing: 'border-box',
+    border: '2px solid transparent',
+    transition: 'border-color 0.2s',
+  },
+  inputGreen: {
+    border: '2px solid #4ade80',
+  },
+  inputBlue: {
+    border: '2px solid #60a5fa',
+  },
+  difficultyGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, 1fr)',
+    gap: '16px',
+    marginBottom: '32px',
+    width: '100%',
+    maxWidth: '448px',
+  },
+  difficultyButton: {
+    padding: '16px',
+    borderRadius: '12px',
+    border: '2px solid transparent',
+    backgroundColor: '#1e293b',
+    opacity: 0.6,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    fontSize: '12px',
+    cursor: 'pointer',
+    transition: 'all 0.2s',
+    color: '#fff',
+  },
+  difficultyButtonActive: {
+    backgroundColor: '#334155',
+    border: '2px solid #fff',
+    transform: 'scale(1.05)',
+    fontWeight: '900',
+    opacity: 1,
+  },
+  kickoffButton: {
+    padding: '16px 64px',
+    fontWeight: '900',
+    fontSize: '24px',
+    borderRadius: '9999px',
+    transition: 'all 0.2s',
+    cursor: 'pointer',
+    border: 'none',
+    boxShadow: '0 25px 50px -12px rgba(34, 197, 94, 0.2)',
+  },
+  kickoffButtonEnabled: {
+    backgroundColor: '#fff',
+    color: '#000',
+  },
+  kickoffButtonDisabled: {
+    backgroundColor: '#475569',
+    cursor: 'not-allowed',
+    opacity: 0.5,
+  },
+  gameOverContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: '100vh',
+    backgroundColor: '#020617',
+    color: '#fff',
+  },
+  gameOverTitle: {
+    fontSize: '4.5rem',
+    fontWeight: '900',
+    marginTop: '16px',
+    textTransform: 'uppercase',
+    fontStyle: 'italic',
+    letterSpacing: '-0.05em',
+  },
+  returnButton: {
+    marginTop: '48px',
+    padding: '20px 48px',
+    backgroundColor: '#fff',
+    color: '#000',
+    fontWeight: '900',
+    borderRadius: '9999px',
+    textTransform: 'uppercase',
+    letterSpacing: '0.1em',
+    cursor: 'pointer',
+    border: 'none',
+    transition: 'background-color 0.2s',
+  },
+  scoreHeader: {
+    width: '100%',
+    maxWidth: '800px',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '16px',
+    padding: '0 32px',
+    backgroundColor: 'rgba(15, 23, 42, 0.8)',
+    paddingTop: '24px',
+    paddingBottom: '24px',
+    borderTopLeftRadius: '24px',
+    borderTopRightRadius: '24px',
+    borderTop: '1px solid #334155',
+    borderLeft: '1px solid #334155',
+    borderRight: '1px solid #334155',
+    backdropFilter: 'blur(12px)',
+  },
+  scoreBox: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    flex: 1,
+  },
+  scoreInner: {
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    padding: '16px 24px',
+    borderRadius: '16px',
+    border: '2px solid #1e293b',
+    boxShadow: 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.5)',
+  },
+  scoreText: {
+    color: '#fff',
+    fontSize: '20px',
+    fontWeight: '900',
+    letterSpacing: '0.1em',
+    fontStyle: 'italic',
+    textTransform: 'uppercase',
+  },
+  modeBadge: {
+    marginTop: '12px',
+    fontSize: '10px',
+    fontWeight: '700',
+    color: '#64748b',
+    backgroundColor: 'rgba(30, 41, 59, 0.5)',
+    padding: '4px 16px',
+    borderRadius: '9999px',
+    border: '1px solid #334155',
+    textTransform: 'uppercase',
+    letterSpacing: '0.1em',
+  },
+  canvas: {
+    borderLeft: '1px solid #1e293b',
+    borderRight: '1px solid #1e293b',
+    borderBottom: '1px solid #1e293b',
+    borderBottomLeftRadius: '24px',
+    borderBottomRightRadius: '24px',
+    boxShadow: '0 0 80px rgba(0, 0, 0, 0.8)',
+    backgroundColor: '#14532d',
+  },
+  quitButton: {
+    marginTop: '32px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    padding: '12px 32px',
+    backgroundColor: 'rgba(220, 38, 38, 0.1)',
+    color: '#ef4444',
+    fontWeight: '700',
+    borderRadius: '9999px',
+    transition: 'all 0.2s',
+    textTransform: 'uppercase',
+    fontSize: '10px',
+    letterSpacing: '0.1em',
+    border: '1px solid rgba(220, 38, 38, 0.2)',
+    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+    cursor: 'pointer',
+  },
+};
+
+  const diffConfig = {
+    easy: { aiSpeed: 3, playerSpeed: 3, ballFriction: 0.98, aiIntelligence: 1.5, shootForce: 18 },
+    medium: { aiSpeed: 4, playerSpeed: 4, ballFriction: 0.985, aiIntelligence: 1.75, shootForce: 21 },
+    hard: { aiSpeed: 3.5, playerSpeed: 3.5, ballFriction: 0.99, aiIntelligence: 1.75, shootForce: 25 }
+  };
+
+      const signs = [
+      { r: 0, c: 2, text: "Meebits are fun!" },
+      { r: 0, c: 11, text: "Meebits are art!" },
+      { r: 1, c: 4, text: "Meebits are art!" },
+      { r: 1, c: 9, text: "Meebits are fun!" },
+      { r: 2, c: 1, text: "Meebin!" }
+    ];
+
+const MiniSoccer = () => {
+  const canvasRef = useRef(null);
+  const [gameState, setGameState] = useState('menu'); 
+  const [difficulty, setDifficulty] = useState('medium');
+  const [playerScore, setPlayerScore] = useState(0);
+  const [aiScore, setAiScore] = useState(0);
+  
+  const [meebitNumber, setMeebitNumber] = useState('2446');
+  const [aiMeebitNumber, setAiMeebitNumber] = useState('17600');
+  
+  const [spriteLoaded, setSpriteLoaded] = useState(false);
+  const [aiSpriteLoaded, setAiSpriteLoaded] = useState(false);
+  
+  const spriteImageRef = useRef(null);
+  const aiSpriteImageRef = useRef(null);
+  
+  const CROWD_HEIGHT = 120;
+  const CROWD_ROWS = 3;
+  const FANS_PER_ROW = 14;
+  const CROWD_COUNT = CROWD_ROWS * FANS_PER_ROW;
+  const crowdSpritesRef = useRef([]);
+  const [crowdLoaded, setCrowdLoaded] = useState(false);
+
+  const FIELD_WIDTH = 800;
+  const FIELD_HEIGHT = 500 + CROWD_HEIGHT; 
+  const GOAL_WIDTH = 25;
+  const GOAL_HEIGHT = 160;
+  const SPRITE_WIDTH = 85;
+  const SPRITE_HEIGHT = 85;
+  const SPRITE_SCALE = 0.6; 
+  const PLAYER_SIZE = SPRITE_WIDTH * SPRITE_SCALE; 
+  const BALL_RADIUS = 14;
+  const WINNING_SCORE = 3;
+
+  const gameRef = useRef({
+    players: [
+      { x: 150, y: 200 + CROWD_HEIGHT, vx: 0, vy: 0, team: 'player', lastDir: { x: 1, y: 0 }, shotTimer: 0, frame: 0, animTimer: 0 },
+      { x: 150, y: 300 + CROWD_HEIGHT, vx: 0, vy: 0, team: 'player', lastDir: { x: 1, y: 0 }, shotTimer: 0, frame: 0, animTimer: 0 }
+    ],
+    ai: [
+      { x: 650, y: 200 + CROWD_HEIGHT, vx: 0, vy: 0, team: 'ai', role: 'striker', lastDir: { x: -1, y: 0 }, frame: 0, animTimer: 0 },
+      { x: 650, y: 300 + CROWD_HEIGHT, vx: 0, vy: 0, team: 'ai', role: 'defender', lastDir: { x: -1, y: 0 }, frame: 0, animTimer: 0 }
+    ],
+    ball: { x: FIELD_WIDTH / 2, y: (500 / 2) + CROWD_HEIGHT, vx: 0, vy: 0, rotation: 0 },
+    keys: {},
+    selectedPlayer: 0,
+    possessor: null,
+    isPaused: false,
+    stuckTimer: 0
+  });
+  
+  const animationRef = useRef(null);
+
+  const resetPositions = () => {
+    const g = gameRef.current;
+    g.ball = { x: FIELD_WIDTH / 2, y: (500 / 2) + CROWD_HEIGHT, vx: 0, vy: 0, rotation: 0 };
+    g.possessor = null;
+    g.stuckTimer = 0;
+    g.players.forEach((p, i) => {
+      p.x = 150; p.y = (i === 0 ? 200 : 300) + CROWD_HEIGHT;
+      p.vx = 0; p.vy = 0; p.shotTimer = 0;
+    });
+    g.ai.forEach((p, i) => {
+      p.x = 650; p.y = (i === 0 ? 200 : 300) + CROWD_HEIGHT;
+      p.vx = 0; p.vy = 0;
+    });
+    g.keys = {};
+  };
+
+
+  useEffect(() => {
+    const loadCrowd = async () => {
+      const sprites = [];
+      const randomIds = Array.from({ length: CROWD_COUNT }, () => Math.floor(Math.random() * 20000));
+      
+      const promises = randomIds.map(id => {
+        return new Promise((resolve) => {
+          const img = new Image();
+          img.crossOrigin = "anonymous";
+          img.src = `https://corsproxy.io/?${encodeURIComponent(`https://files.meebits.app/sprites/${id}.png`)}`;
+          img.onload = () => {
+            sprites.push({ img, offset: Math.random() * Math.PI * 2 });
+            resolve();
+          };
+          img.onerror = () => {
+            setCrowdLoaded(false);
+            resolve()
+          };
+        });
+      });
+
+      await Promise.all(promises);
+      crowdSpritesRef.current = sprites;
+      setCrowdLoaded(true);
+    };
+    loadCrowd();
+  }, []);
+
+  const loadSpriteAsset = async (id, isPlayer) => {
+    const setLoaded = isPlayer ? setSpriteLoaded : setAiSpriteLoaded;
+    const ref = isPlayer ? spriteImageRef : aiSpriteImageRef;
+    setLoaded(false);
+    const spriteUrl = `https://corsproxy.io/?${encodeURIComponent(`https://files.meebits.app/sprites/${id}.png`)}`;
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => { ref.current = img; setLoaded(true); };
+    img.onerror = () => setLoaded(false);
+    img.src = spriteUrl;
+  };
+
+  useEffect(() => { loadSpriteAsset(meebitNumber, true); }, [meebitNumber]);
+  useEffect(() => { loadSpriteAsset(aiMeebitNumber, false); }, [aiMeebitNumber]);
+
+  useEffect(() => {
+    if (gameState !== 'playing') return;
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const bufferSize = audioCtx.sampleRate * 2;
+    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+    let lastOut = 0.0;
+    for (let i = 0; i < bufferSize; i++) {
+      let white = Math.random() * 2 - 1;
+      data[i] = (lastOut + (0.02 * white)) / 1.02;
+      lastOut = data[i];
+      data[i] *= 4.5;
+    }
+    const roar = audioCtx.createBufferSource();
+    roar.buffer = buffer;
+    roar.loop = true;
+    const lowPass = audioCtx.createBiquadFilter();
+    lowPass.type = 'lowpass';
+    lowPass.frequency.value = 500; 
+    const resonance = audioCtx.createBiquadFilter();
+    resonance.type = 'peaking';
+    resonance.frequency.value = 200;
+    resonance.Q.value = 3;
+    resonance.gain.value = 5;
+    const roarGain = audioCtx.createGain();
+    roarGain.gain.value = 0.18;
+    roar.connect(resonance);
+    resonance.connect(lowPass);
+    lowPass.connect(roarGain);
+    roarGain.connect(audioCtx.destination);
+    roar.start();
+    return () => { roar.stop(); audioCtx.close(); };
+  }, [gameState]);
+
+
+  const getDirectionRow = (dirX, dirY) => {
+    const angle = Math.atan2(dirY, dirX);
+    const deg = (angle * 180 / Math.PI + 360) % 360;
+    if (deg >= 315 || deg < 45) return 0;
+    if (deg >= 45 && deg < 135) return 3;
+    if (deg >= 135 && deg < 225) return 2;
+    return 1;
+  };
+
+  const drawSprite = (ctx, player, isSelected, isPossessor) => {
+    const img = player.team === 'player' ? spriteImageRef.current : aiSpriteImageRef.current;
+    const isLoaded = player.team === 'player' ? spriteLoaded : aiSpriteLoaded;
+    if (!img || !isLoaded) {
+      ctx.fillStyle = player.team === 'player' ? 'rgba(255, 255, 0, 0.5)' : 'rgba(0, 255, 255, 0.5)';
+      ctx.beginPath(); ctx.arc(player.x, player.y, PLAYER_SIZE/2, 0, Math.PI*2); ctx.fill();
+      return;
+    }
+    const isMoving = Math.abs(player.vx) > 0.1 || Math.abs(player.vy) > 0.1;
+    const row = getDirectionRow(player.lastDir.x, player.lastDir.y);
+    // let frameCol = isMoving ? Math.floor(player.frame * 0.4) % 2 : 0;
+
+    const walkCycle = [0, 1, 2, 1]; 
+let frameCol = isMoving ? walkCycle[Math.floor(player.frame / 2) % 4] : 0;
+
+    const sx = frameCol * SPRITE_WIDTH;
+    const sy = row * SPRITE_HEIGHT;
+    const drawWidth = SPRITE_WIDTH * SPRITE_SCALE * 2.5;
+    const drawHeight = SPRITE_HEIGHT * SPRITE_SCALE * 2.5;
+    ctx.save();
+    if (isSelected || isPossessor) {
+      ctx.shadowBlur = 25;
+      ctx.shadowColor = isPossessor ? '#ffffff33' : '#fbbe243d';
+    }
+    let adjustedSY = row === 3 ? sy - 12 : sy;
+    adjustedSY = row === 2 ? adjustedSY - 10 : adjustedSY;
+    ctx.imageSmoothingEnabled = false;
+    const visualY = Math.floor(player.y - drawHeight + 25);
+    ctx.drawImage(img, sx, adjustedSY, SPRITE_WIDTH, SPRITE_HEIGHT, Math.floor(player.x - drawWidth / 2), visualY, drawWidth, drawHeight);
+    ctx.restore();
+  };
+
+  const drawStadium = (ctx) => {
+    ctx.fillStyle = '#1e293b'; ctx.fillRect(0, 0, FIELD_WIDTH, CROWD_HEIGHT);
+    ctx.strokeStyle = '#334155'; ctx.lineWidth = 1;
+    for (let i = 0; i <= CROWD_ROWS; i++) {
+      ctx.beginPath(); ctx.moveTo(0, i * 32 + 10); ctx.lineTo(FIELD_WIDTH, i * 32 + 10); ctx.stroke();
+    }
+    if (!crowdLoaded) return;
+    const time = Date.now() / 1500;
+    const fanSize = 75; 
+    const spacing = FIELD_WIDTH / (FANS_PER_ROW + 1);
+
+
+    for (let r = 0; r < CROWD_ROWS; r++) {
+      for (let c = 0; c < FANS_PER_ROW; c++) {
+        const fan = crowdSpritesRef.current[r * FANS_PER_ROW + c];
+        if (!fan) continue;
+        const jump = Math.sin(time * 5 + fan.offset) * 2; 
+        const stagger = (r % 2) * (spacing / 2);
+        const x = spacing * (c + 1) - fanSize / 2 + stagger;
+        const y = 5 + (r * 32) + jump;
+        ctx.save();
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(fan.img, 0, 85 * 3 - 12, 85, 85, x, y, fanSize, fanSize);
+        ctx.restore();
+
+        const sign = signs.find(s => s.r === r && s.c === c);
+        if (sign) {
+          ctx.save();
+          const signWidth = 100;
+          const signHeight = 22;
+          const sx = x + fanSize / 2 - signWidth / 2;
+          const sy = y - 10;
+          ctx.fillStyle = '#fff';
+          ctx.strokeStyle = '#000';
+          ctx.lineWidth = 2;
+          ctx.fillRect(sx, sy, signWidth, signHeight);
+          ctx.strokeRect(sx, sy, signWidth, signHeight);
+          ctx.fillStyle = '#000';
+          ctx.font = 'bold 10px monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText(sign.text, sx + signWidth / 2, sy + 15);
+          ctx.restore();
+        }
+      }
+    }
+    ctx.fillStyle = 'rgba(0,0,0,0.4)'; ctx.fillRect(0, CROWD_HEIGHT, FIELD_WIDTH, 8);
+  };
+
+  useEffect(() => {
+    if (gameState !== 'playing') return;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    const settings = diffConfig[difficulty];
+
+    const shootBall = (force) => {
+      const game = gameRef.current;
+      if (game.possessor === null) return;
+      const p = game.players[game.possessor];
+      game.ball.vx = p.lastDir.x * force;
+      game.ball.vy = p.lastDir.y * force;
+      p.shotTimer = 25; 
+      game.possessor = null;
+    };
+    
+    const handleKeyDown = (e) => {
+      const key = e.key.toLowerCase();
+      gameRef.current.keys[key] = true;
+      if (key === ' ') {
+        e.preventDefault();
+        gameRef.current.selectedPlayer = 1 - gameRef.current.selectedPlayer;
+      }
+      if (key === 'enter' && gameRef.current.possessor !== null) {
+        e.preventDefault();
+        shootBall(settings.shootForce);
+      }
+    };
+    const handleKeyUp = (e) => { gameRef.current.keys[e.key.toLowerCase()] = false; };
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
+    const gameLoop = () => {
+      const game = gameRef.current;
+      const ball = game.ball;
+      if (playerScore >= WINNING_SCORE || aiScore >= WINNING_SCORE) {
+        setGameState('gameOver');
+        return;
+      }
+      const goalTop = (500 / 2) - (GOAL_HEIGHT / 2) + CROWD_HEIGHT;
+
+      if (!game.isPaused) {
+        const isOutOfBounds = ball.x < -20 || ball.x > FIELD_WIDTH + 20 || ball.y < CROWD_HEIGHT - 20 || ball.y > FIELD_HEIGHT + 20;
+        const isStuck = Math.abs(ball.vx) < 0.05 && Math.abs(ball.vy) < 0.05 && game.possessor === null;
+        
+        if (isStuck) game.stuckTimer++; else game.stuckTimer = 0;
+        
+        if (isOutOfBounds || game.stuckTimer > 180) {
+           resetPositions();
+        }
+
+
+
+        // ball.rotation += speed * 0.15; 
+
+        game.players.forEach((p, idx) => {
+          if (p.shotTimer > 0) p.shotTimer--;
+          if (idx === game.selectedPlayer) {
+            const speed = settings.playerSpeed;
+            p.vx = 0; p.vy = 0;
+            if (game.keys['arrowleft'] || game.keys['a']) p.vx = -speed;
+            if (game.keys['arrowright'] || game.keys['d']) p.vx = speed;
+            if (game.keys['arrowup'] || game.keys['w']) p.vy = -speed;
+            if (game.keys['arrowdown'] || game.keys['s']) p.vy = speed;
+            if (p.vx !== 0 || p.vy !== 0) {
+              const mag = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
+              p.lastDir = { x: p.vx / mag, y: p.vy / mag };
+              const moveSpeed = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
+              p.animTimer += moveSpeed * 0.05; // The timer increments based on actual velocity
+              p.frame = Math.floor(p.animTimer);
+            }
+          } else { p.vx *= 0.8; p.vy *= 0.8; }
+        });
+
+        game.ai.forEach((ai) => {
+          let tx = ball.x, ty = ball.y;
+          if (ai.role === 'striker') { tx = ball.x + ball.vx * 2; ty = ball.y + ball.vy * 2; }
+          else { const defenseX = Math.max(600, ball.x + 100); tx = defenseX; ty = ball.y > (500 / 2) + CROWD_HEIGHT ? ball.y - 80 : ball.y + 80; }
+          const dx = tx - ai.x, dy = ty - ai.y, dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist > 5) {
+            ai.vx = (dx / dist) * settings.aiSpeed; ai.vy = (dy / dist) * settings.aiSpeed;
+            const mag = Math.sqrt(ai.vx * ai.vx + ai.vy * ai.vy);
+            if (mag > 0) ai.lastDir = { x: ai.vx / mag, y: ai.vy / mag };
+            ai.animTimer++; if (ai.animTimer % 4 === 0) ai.frame++;
+          }
+          ai.vx *= 0.88; ai.vy *= 0.88;
+          const ballDist = Math.sqrt((ball.x - ai.x)**2 + (ball.y - ai.y)**2);
+          if (ballDist < PLAYER_SIZE/2 + BALL_RADIUS) {
+            game.possessor = null; 
+            const angle = Math.atan2(ball.y - ai.y, ball.x - ai.x);
+            const kickPower = 8 + (settings.aiIntelligence * 6);
+            ball.vx = Math.cos(angle) * kickPower; ball.vy = Math.sin(angle) * kickPower;
+          }
+        });
+
+        [...game.players, ...game.ai].forEach(p => {
+          p.x += p.vx; p.y += p.vy;
+          p.x = Math.max(PLAYER_SIZE/2, Math.min(FIELD_WIDTH - PLAYER_SIZE/2, p.x));
+          p.y = Math.max(CROWD_HEIGHT + PLAYER_SIZE/2, Math.min(FIELD_HEIGHT - PLAYER_SIZE/2, p.y));
+        });
+
+        if (game.possessor !== null) {
+          const p = game.players[game.possessor];
+           const playerspeed = settings.playerSpeed;
+          ball.rotation += playerspeed * 0.15; 
+          // 1. Update Ball Position relative to Player
+          ball.x = p.x + p.lastDir.x * (PLAYER_SIZE/2 + 5);
+          ball.y = p.y + p.lastDir.y * (PLAYER_SIZE/2 + 5);
+          ball.vx = p.vx; 
+          ball.vy = p.vy;
+          const speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy); 
+
+          // Only rotate if the player (and thus the ball) is actually moving
+          if (speed > 0.1) {
+            // The 0.15 multiplier determines how fast it spins relative to movement speed
+            ball.rotation += speed * 0.15; 
+          }
+        } else {
+          game.players.forEach((p, idx) => {
+            if (p.shotTimer === 0) {
+              const dist = Math.sqrt((ball.x - p.x)**2 + (ball.y - p.y)**2);
+              if (dist < PLAYER_SIZE/2 + BALL_RADIUS + 2) game.possessor = idx;
+            }
+          });
+          ball.x += ball.vx; ball.y += ball.vy;
+          ball.vx *= settings.ballFriction; ball.vy *= settings.ballFriction;
+        }
+
+        const goalBottom = goalTop + GOAL_HEIGHT;
+        if (ball.y - BALL_RADIUS < CROWD_HEIGHT || ball.y + BALL_RADIUS > FIELD_HEIGHT) ball.vy *= -0.8;
+        if (ball.x - BALL_RADIUS < 0) {
+          if (ball.y > goalTop && ball.y < goalBottom) handleScore('ai');
+          else { ball.vx *= -0.8; ball.x = BALL_RADIUS; }
+        }
+        if (ball.x + BALL_RADIUS > FIELD_WIDTH) {
+          if (ball.y > goalTop && ball.y < goalBottom) handleScore('player');
+          else { ball.vx *= -0.8; ball.x = FIELD_WIDTH - BALL_RADIUS; }
+        }
+      }
+
+      ctx.clearRect(0, 0, FIELD_WIDTH, FIELD_HEIGHT);
+      drawStadium(ctx);
+      ctx.fillStyle = '#162b0e'; ctx.fillRect(0, CROWD_HEIGHT, FIELD_WIDTH, 500);
+      ctx.strokeStyle = 'rgba(255,255,255,0.15)'; ctx.lineWidth = 3;
+      ctx.strokeRect(10, CROWD_HEIGHT + 10, FIELD_WIDTH-20, 500-20);
+      ctx.beginPath(); ctx.moveTo(FIELD_WIDTH/2, CROWD_HEIGHT); ctx.lineTo(FIELD_WIDTH/2, FIELD_HEIGHT); ctx.stroke();
+      
+      const drawGoal = (x, isPlayerSide) => {
+        ctx.save(); ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)'; ctx.lineWidth = 1;
+        for (let i = 0; i <= GOAL_HEIGHT; i += 12) {
+            ctx.beginPath(); ctx.moveTo(x, goalTop + i); ctx.lineTo(isPlayerSide ? x + GOAL_WIDTH : x - GOAL_WIDTH, goalTop + i); ctx.stroke();
+        }
+        ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 5; ctx.strokeRect(isPlayerSide ? 0 : FIELD_WIDTH - GOAL_WIDTH, goalTop, GOAL_WIDTH, GOAL_HEIGHT);
+        ctx.restore();
+      };
+      drawGoal(0, true); drawGoal(FIELD_WIDTH, false);
+      game.players.forEach((p, i) => drawSprite(ctx, p, i === game.selectedPlayer, game.possessor === i));
+      game.ai.forEach((p) => drawSprite(ctx, p, false, false));
+      
+      // PIXELATED BALL WITH BLACK SQUARED SHAPES AND CONDITIONAL ROTATION
+      ctx.save(); 
+      ctx.translate(ball.x, ball.y); 
+      ctx.rotate(ball.rotation);
+
+      // Shadow for ball
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+      ctx.shadowBlur = 5;
+      ctx.shadowOffsetX = 2;
+      ctx.shadowOffsetY = 2;
+
+      // Ball background
+      ctx.beginPath(); 
+      ctx.arc(0, 0, BALL_RADIUS, 0, Math.PI*2);
+      ctx.fillStyle = '#fff'; 
+      ctx.fill();
+
+      // Pixelated black squares for pattern
+      ctx.fillStyle = '#000';
+      const squareSize = 3;
+      const numSquares = 20; // Number of black squares
+      for (let i = 0; i < numSquares; i++) {
+        const angle = (i * (2 * Math.PI / numSquares)) + ball.rotation; // Rotate squares
+        const dist = 9.9; // Random distance from center
+        const x = Math.cos(angle) * dist;
+        const y = Math.sin(angle) * dist;
+        ctx.fillRect(x - squareSize / 5, y - squareSize / 5, squareSize, squareSize);
+      }
+
+      // Border
+      ctx.strokeStyle = '#000'; 
+      ctx.lineWidth = 1; 
+      ctx.beginPath(); 
+      ctx.arc(0, 0, BALL_RADIUS, 0, Math.PI*2);
+      ctx.stroke();
+      ctx.restore();
+
+      animationRef.current = requestAnimationFrame(gameLoop);
+    };
+    
+    const handleScore = (team) => {
+      const g = gameRef.current; g.isPaused = true;
+      if (team === 'player') setPlayerScore(s => s + 1); else setAiScore(s => s + 1);
+      setTimeout(() => { resetPositions(); g.isPaused = false; }, 1200);
+    };
+
+    gameLoop();
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown); 
+      window.removeEventListener('keyup', handleKeyUp);
+      cancelAnimationFrame(animationRef.current);
+    };
+  }, [gameState, difficulty, playerScore, aiScore, spriteLoaded, aiSpriteLoaded, crowdLoaded]);
+
+  const quitToMenu = () => { resetPositions(); setPlayerScore(0); setAiScore(0); setGameState('menu'); };
+
+  const MeebitAvatar = ({ id, loaded }) => (
+    <div style={styles.avatarCircle}>
+      {!loaded && <div style={styles.avatarLoading}>LOADING...</div>}
+      <div style={{...styles.avatarSprite, backgroundImage: `url(https://corsproxy.io/?${encodeURIComponent(`https://files.meebits.app/sprites/${id}.png`)})`, backgroundPosition: '0 -204px', opacity: loaded ? 1 : 0}} />
+    </div>
+  );
+
+  if (gameState === 'menu') {
+        const isAssetsReady = spriteLoaded && aiSpriteLoaded && crowdLoaded;
+    return (
+      <div style={styles.menuContainer}>
+        <h1 style={styles.title}>Meebits Mini Soccer</h1>
+        <div style={{...styles.avatarGrid, gridTemplateColumns: window.innerWidth >= 768 ? 'repeat(2, 1fr)' : '1fr'}}>
+          <div style={styles.avatarCard}>
+            <MeebitAvatar id={meebitNumber} loaded={spriteLoaded} />
+            <label style={{...styles.label, ...styles.labelGreen}}>Home ID</label>
+            <input type="text" value={meebitNumber} onChange={(e) => setMeebitNumber(e.target.value.replace(/\D/g, ''))} style={styles.input} />
+          </div>
+          <div style={styles.avatarCard}>
+            <MeebitAvatar id={aiMeebitNumber} loaded={aiSpriteLoaded} />
+            <label style={{...styles.label, ...styles.labelBlue}}>Away ID</label>
+            <input type="text" value={aiMeebitNumber} onChange={(e) => setAiMeebitNumber(e.target.value.replace(/\D/g, ''))} style={styles.input} />
+          </div>
+        </div>
+        <div style={styles.difficultyGrid}>
+          {['easy', 'medium', 'hard'].map(lvl => (
+            <button key={lvl} onClick={() => setDifficulty(lvl)} style={difficulty === lvl ? {...styles.difficultyButton, ...styles.difficultyButtonActive} : styles.difficultyButton}>
+              <span>{lvl.toUpperCase()}</span>
+            </button>
+          ))}
+        </div>
+        <p style={{...styles.scoreText, fontSize: "22px"}}> Controls:</p>
+        <p style={{...styles.scoreText, fontSize: "18px", textAlign: 'center'}}>Move: "WASD" | Swap: "Space" | Shoot: "Enter"</p>
+        {/* <button 
+          onClick={() => setGameState('playing')} 
+          disabled={!spriteLoaded || !aiSpriteLoaded || !crowdLoaded} 
+          style={(!spriteLoaded || !aiSpriteLoaded || !crowdLoaded) ? {...styles.kickoffButton, ...styles.kickoffButtonDisabled} : {...styles.kickoffButton, ...styles.kickoffButtonEnabled}}
+        >
+          {crowdLoaded ? "KICK OFF" : "LOADING ASSETS..."}
+        </button> */}
+
+                <button 
+  onClick={() => setGameState('playing')} 
+  disabled={!isAssetsReady} 
+  style={!isAssetsReady ? 
+    {...styles.kickoffButton, ...styles.kickoffButtonDisabled} : 
+    {...styles.kickoffButton, ...styles.kickoffButtonEnabled}
+  }
+>
+  {isAssetsReady ? "KICK OFF" : "LOADING ASSETS..."}
+</button>
+      </div>
+    );
+  }
+  
+  if (gameState === 'gameOver') {
+    return (
+      <div style={styles.gameOverContainer}>
+        <Trophy size={100} color="#facc15" />
+        <h1 style={styles.gameOverTitle}>{playerScore >= WINNING_SCORE ? 'Champion!' : 'Defeated'}</h1>
+        <button onClick={quitToMenu} style={styles.returnButton}>Return to Lobby</button>
+      </div>
+    );
+  }
+
+  return (
+    <div style={styles.container}>
+      <div style={styles.scoreHeader}>
+        <div style={styles.scoreBox}>
+          <div style={styles.scoreInner}><span style={styles.scoreText}>HOME - {playerScore} : AWAY - {aiScore}</span></div>
+          <span style={styles.modeBadge}>{difficulty} Mode</span>
+        </div>
+      </div>
+      <canvas ref={canvasRef} width={FIELD_WIDTH} height={FIELD_HEIGHT} style={styles.canvas} />
+      <button onClick={quitToMenu} style={styles.quitButton}><RotateCcw size={14} /> Quit Match</button>
+    </div>
+  );
+};
+
+export default MiniSoccer;
