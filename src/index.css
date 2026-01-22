@@ -31,7 +31,7 @@ body {
   display: flex;
   place-items: center;
   min-width: 320px;
-  min-height: 100vh;
+  min-height: 135vh;
 }
 
 h1 {
@@ -78,4 +78,14 @@ html, body, #root {
   margin: 0;
   padding: 0;
   background-color: black;
+}
+
+@keyframes turnAround {
+  0% { 
+    background-position-y: 40%;
+
+  }
+  100% { 
+    background-position-y: 101%; 
+  }
 }
