@@ -22,14 +22,37 @@ const styles = {
     backgroundColor: '#020617',
     color: '#fff',
     padding: '24px',
-    overflow: 'scroll'
+    overflow: 'scroll',
+    position: 'relative',
+  },
+  pixelCanvas: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
+    zIndex: 0,
+    opacity: 0.4,
+    zIndex: 0
+  },
+  menuContent: {
+    position: 'relative',
+    zIndex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    width: '55%',
+    backgroundColor: '#2e3144ff',
+    border: '2px solid grey',
+    borderRadius: '5px',
+    padding: '25px'
   },
   title: {
     fontSize: '6rem',
     fontWeight: '900',
     fontStyle: 'italic',
     letterSpacing: '-0.05em',
-    background: "linear-gradient(to right, #2d11a2, #6163ea)",
+    background: "linear-gradient(to right, #371ca1ff, #6163ea)",
     WebkitBackgroundClip: 'text',
     WebkitTextFillColor: 'transparent',
     marginBottom: '40px',
@@ -49,7 +72,7 @@ const styles = {
     backgroundColor: '#1e293b',
     padding: '24px',
     borderRadius: '16px',
-    border: '2px solid #334155',
+    border: '2px solid grey',
     boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
   },
   avatarCircle: {
@@ -82,7 +105,8 @@ const styles = {
     backgroundRepeat: 'no-repeat',
     transform: 'scale(1.98)',
     imageRendering: 'pixelated',
-    animation: 'turnAround 2s ease-in-out forwards'
+    animation: 'turnAround 2s ease-in-out forwards',
+    backgroundColor: 'rgba(97, 99, 234, 0.3)'
   },
   label: {
     display: 'block',
@@ -156,6 +180,8 @@ const styles = {
     cursor: 'pointer',
     border: 'none',
     boxShadow: '0 25px 50px -12px rgba(34, 197, 94, 0.2)',
+    marginBottom: '25px',
+    marginTop: '25px'
   },
   kickoffButtonEnabled: {
     backgroundColor: '#fff',
@@ -170,10 +196,11 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: '100vh',
+    justifyContent: 'flex-start',
+    minHeight: '100%',
     backgroundColor: '#020617',
     color: '#fff',
+    paddingTop: '10%'
   },
   gameOverTitle: {
     fontSize: '4.5rem',
@@ -274,7 +301,7 @@ const styles = {
     boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
     cursor: 'pointer',
   },
-  
+
 };
 
 const skeleAvatars = ['16102', '11355', '15710', '9700', '16633', '3595']
@@ -282,9 +309,9 @@ const skeleAvatars = ['16102', '11355', '15710', '9700', '16633', '3595']
 
 
 const diffConfig = {
-  easy: { aiSpeed: 3, playerSpeed: 3, ballFriction: 0.98, aiIntelligence: 1.5, shootForce: 18 },
-  medium: { aiSpeed: 3.2, playerSpeed: 3.2, ballFriction: 0.985, aiIntelligence: 1.75, shootForce: 21 },
-  hard: { aiSpeed: 1, playerSpeed: 1, ballFriction: 0.99, aiIntelligence: 2, shootForce: 25, skeletonSpeed: 1 },
+  easy: { aiSpeed: 3, playerSpeed: 3, ballFriction: 0.98, aiIntelligence: 1, shootForce: 18 },
+  medium: { aiSpeed: 3.2, playerSpeed: 3.2, ballFriction: 0.985, aiIntelligence: 1, shootForce: 21 },
+  hard: { aiSpeed: 3.2, playerSpeed: 3.2, ballFriction: 0.99, aiIntelligence: 1, shootForce: 22, skeletonSpeed: 1.75 },
   "30": { duration: 30 },
   "60": { duration: 60 },
   "90": { duration: 90 },
@@ -299,25 +326,39 @@ const signs = [
   { r: 2, c: 1, text: "Meebin!" }
 ];
 
+const CROWD_HEIGHT = 120;
+const CROWD_ROWS = 3;
+const FANS_PER_ROW = 14;
+const CROWD_COUNT = CROWD_ROWS * FANS_PER_ROW;
+const FIELD_WIDTH = 800;
+const FIELD_HEIGHT = 500 + CROWD_HEIGHT;
+const GOAL_WIDTH = 25;
+const GOAL_HEIGHT = 160;
+const SPRITE_WIDTH = 85;
+const SPRITE_HEIGHT = 85;
+const SPRITE_SCALE = 0.6;
+const PLAYER_SIZE = SPRITE_WIDTH * SPRITE_SCALE;
+const BALL_RADIUS = 14;
+
 
 const MeebitAvatar = React.memo(({ id, loaded }) => {
   // Debug: If this shows in console, the component is trying to render
-  console.log("Rendering Meebit:", id); 
+  console.log("Rendering Meebit:", id);
 
   return (
-    <div key={id} style={{ 
-      ...styles.avatarCircle, 
-      perspective: '1000px' 
+    <div key={id} style={{
+      ...styles.avatarCircle,
+      perspective: '1000px'
     }}>
       {!loaded && <div style={styles.avatarLoading}>LOADING...</div>}
       {loaded && (
-        <div 
-          style={{ 
-            ...styles.avatarSprite, 
-            backgroundImage: `url(https://corsproxy.io/?${encodeURIComponent(`https://files.meebits.app/sprites/${id}.png`)})`, 
-          backgroundPositionX: '0px',
-          transformOrigin: 'center bottom',
-          }} 
+        <div
+          style={{
+            ...styles.avatarSprite,
+            backgroundImage: `url(https://corsproxy.io/?${encodeURIComponent(`https://files.meebits.app/sprites/${id}.png`)})`,
+            backgroundPositionX: '0px',
+            transformOrigin: 'center bottom',
+          }}
         />
       )}
     </div>
@@ -340,36 +381,27 @@ const MiniSoccer = () => {
   const [meebitNumber, setMeebitNumber] = useState('2446');
   const [aiMeebitNumber, setAiMeebitNumber] = useState('17600');
 
+  const pixelCanvasRef = useRef(null);
+  const pixelAnimationRef = useRef(null)
+
   const [spriteLoaded, setSpriteLoaded] = useState(false);
   const [aiSpriteLoaded, setAiSpriteLoaded] = useState(false);
   const [introAnimation, setIntroAnimation] = useState(null);
 
-const skeleton1ImageRef = useRef(null);
-const skeleton2ImageRef = useRef(null);
-const [skeleton1Loaded, setSkeleton1Loaded] = useState(false);
-const [skeleton2Loaded, setSkeleton2Loaded] = useState(false);
+  const skeleton1ImageRef = useRef(null);
+  const skeleton2ImageRef = useRef(null);
+  const [skeleton1Loaded, setSkeleton1Loaded] = useState(false);
+  const [skeleton2Loaded, setSkeleton2Loaded] = useState(false);
 
   const spriteImageRef = useRef(null);
   const aiSpriteImageRef = useRef(null);
 
   const crowdAudioRef = useRef(null); // ADD THIS
 
-  const CROWD_HEIGHT = 120;
-  const CROWD_ROWS = 3;
-  const FANS_PER_ROW = 14;
-  const CROWD_COUNT = CROWD_ROWS * FANS_PER_ROW;
+
   const crowdSpritesRef = useRef([]);
   const [crowdLoaded, setCrowdLoaded] = useState(false);
 
-  const FIELD_WIDTH = 800;
-  const FIELD_HEIGHT = 500 + CROWD_HEIGHT;
-  const GOAL_WIDTH = 25;
-  const GOAL_HEIGHT = 160;
-  const SPRITE_WIDTH = 85;
-  const SPRITE_HEIGHT = 85;
-  const SPRITE_SCALE = 0.6;
-  const PLAYER_SIZE = SPRITE_WIDTH * SPRITE_SCALE;
-  const BALL_RADIUS = 14;
 
   const gameRef = useRef({
     players: [
@@ -388,41 +420,106 @@ const [skeleton2Loaded, setSkeleton2Loaded] = useState(false);
     isPaused: false,
     stuckTimer: 0,
     gameStartTime: null,
-    deathAnimations: []
+    deathAnimations: [],
+    skeletonsSpawned: false,        // ADD: Track if skeletons have spawned
+    skeletonSpawnTimer: 0,           // ADD: Count frames until spawn
+    skeletonSpawnAnimations: []      // ADD: Track spawn animations
   });
 
   const animationRef = useRef(null);
 
-const resetPositions = () => {
-  const g = gameRef.current;
-  g.ball = { x: FIELD_WIDTH / 2, y: (500 / 2) + CROWD_HEIGHT, vx: 0, vy: 0, rotation: 0 };
-  g.possessor = null;
-  g.stuckTimer = 0;
-  g.players.forEach((p, i) => {
-    p.x = 150; p.y = (i === 0 ? 200 : 300) + CROWD_HEIGHT;
-    p.vx = 0; p.vy = 0; p.shotTimer = 0;
-    p.alive = true; // ADD THIS
-  });
+  const resetPositions = () => {
+    const g = gameRef.current;
+    g.ball = { x: FIELD_WIDTH / 2, y: (500 / 2) + CROWD_HEIGHT, vx: 0, vy: 0, rotation: 0 };
+    g.possessor = null;
+    g.stuckTimer = 0;
+    g.players.forEach((p, i) => {
+      p.x = 150; p.y = (i === 0 ? 200 : 300) + CROWD_HEIGHT;
+      p.vx = 0; p.vy = 0; p.shotTimer = 0;
+      p.alive = true; // ADD THIS
+    });
 
-  
-  // ADD THIS - Initialize skeletons for hard mode
-  if (difficulty === 'hard') {
-    g.skeletons = [
-      { x: 400, y: 180 + CROWD_HEIGHT, vx: 0, vy: 0, team: 'skeleton', lastDir: { x: -1, y: 0 }, frame: 0, animTimer: 0, alive: true, spriteRef: skeleton1ImageRef },
-      { x: 400, y: 380 + CROWD_HEIGHT, vx: 0, vy: 0, team: 'skeleton', lastDir: { x: -1, y: 0 }, frame: 0, animTimer: 0, alive: true, spriteRef: skeleton2ImageRef }
-    ];
-  } else {
-    g.skeletons = [];
-  }
+
+    // REPLACE THIS SECTION - Reset skeleton spawn state instead of spawning immediately
+    if (difficulty === 'hard') {
+      g.skeletons = []; // Start with no skeletons
+      g.skeletonsSpawned = false; // Mark as not spawned
+      g.skeletonSpawnTimer = 0; // Reset timer
+      g.skeletonSpawnAnimations = []; // Clear any animations
+    } else {
+      g.skeletons = [];
+      g.skeletonsSpawned = false;
+    }
 
     g.ai.forEach((p, i) => {
-    p.x = 650; p.y = (i === 0 ? 200 : 300) + CROWD_HEIGHT;
-    p.vx = 0; p.vy = 0;
-  });
-  g.gameStartTime = Date.now();
-  g.keys = {};
-  g.deathAnimations = []
-};
+      p.x = 650; p.y = (i === 0 ? 200 : 300) + CROWD_HEIGHT;
+      p.vx = 0; p.vy = 0;
+    });
+    // g.gameStartTime = Date.now();
+    g.keys = {};
+    g.deathAnimations = []
+  };
+
+  // ADD THIS ENTIRE EFFECT:
+  useEffect(() => {
+    if (gameState !== 'menu' || !pixelCanvasRef.current) return;
+
+    const canvas = pixelCanvasRef.current;
+    const ctx = canvas.getContext('2d');
+
+    // Set canvas size
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+
+    const pixelSize = 20; // Size of each pixel block
+    const cols = Math.ceil(canvas.width / pixelSize);
+    const rows = Math.ceil(canvas.height / pixelSize);
+
+    // Create pixel grid with random initial brightness
+    const pixels = [];
+    for (let y = 0; y < rows; y++) {
+      for (let x = 0; x < cols; x++) {
+        pixels.push({
+          x: x * pixelSize,
+          y: y * pixelSize,
+          brightness: Math.random() * 100,
+          speed: 0.4
+          // speed: 0.5 + Math.random() * 1.1 // Random animation speed
+        });
+      }
+    }
+
+    const animate = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      pixels.forEach(pixel => {
+        // Update brightness with sine wave for smooth pulsing
+        pixel.brightness += pixel.speed;
+
+        // Calculate color based on brightness (cycling between dark and light blues/purples)
+        const value = Math.sin(pixel.brightness * 0.05) * 0.5 + 0.5; // 0 to 1
+
+        // Mix between dark blue and light purple
+        const r = Math.floor(20 + value * 77); // 20 to 97
+        const g = Math.floor(20 + value * 79); // 20 to 99
+        const b = Math.floor(40 + value * 194); // 40 to 234
+
+        ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+        ctx.fillRect(pixel.x, pixel.y, pixelSize, pixelSize);
+      });
+
+      pixelAnimationRef.current = requestAnimationFrame(animate);
+    };
+
+    animate();
+
+    // Cleanup
+    return () => {
+      if (pixelAnimationRef.current) {
+        cancelAnimationFrame(pixelAnimationRef.current);
+      }
+    };
+  }, [gameState]);
 
 
   useEffect(() => {
@@ -456,22 +553,26 @@ const resetPositions = () => {
   }, []);
 
   // Load skeleton sprites
-useEffect(() => {
-  const loadSkeletonSprite = async (id, ref, setLoaded) => {
-    setLoaded(false);
-    const spriteUrl = `https://corsproxy.io/?${encodeURIComponent(`https://files.meebits.app/sprites/${id}.png`)}`;
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.onload = () => { ref.current = img; setLoaded(true); };
-    img.onerror = () => setLoaded(false);
-    img.src = spriteUrl;
-  };
+  useEffect(() => {
+    const loadSkeletonSprite = async (id, ref, setLoaded) => {
+      setLoaded(false);
+      const spriteUrl = `https://corsproxy.io/?${encodeURIComponent(`https://files.meebits.app/sprites/${id}.png`)}`;
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => { ref.current = img; setLoaded(true); };
+      img.onerror = () => setLoaded(false);
+      img.src = spriteUrl;
+    };
 
-  if (difficulty === 'hard') {
-    loadSkeletonSprite(skeleAvatars[0], skeleton1ImageRef, setSkeleton1Loaded);
-    loadSkeletonSprite(skeleAvatars[1], skeleton2ImageRef, setSkeleton2Loaded);
-  }
-}, [difficulty]);
+    // 1. Calculate a random index based on the length of skeleAvatars
+    const randomIndex = Math.floor(Math.random() * skeleAvatars.length);
+    const randomIndex2 = Math.floor(Math.random() * skeleAvatars.length);
+
+    if (difficulty === 'hard') {
+      loadSkeletonSprite(skeleAvatars[randomIndex], skeleton1ImageRef, setSkeleton1Loaded);
+      loadSkeletonSprite(skeleAvatars[randomIndex2], skeleton2ImageRef, setSkeleton2Loaded);
+    }
+  }, [difficulty, meebitNumber]);
 
   const loadSpriteAsset = async (id, isPlayer) => {
     const setLoaded = isPlayer ? setSpriteLoaded : setAiSpriteLoaded;
@@ -489,30 +590,30 @@ useEffect(() => {
   useEffect(() => { loadSpriteAsset(aiMeebitNumber, false); }, [aiMeebitNumber]);
 
 
-useEffect(() => {
-  // Initialize the audio object if it doesn't exist
-  if (!crowdAudioRef.current) {
-    crowdAudioRef.current = new Audio('../cheering-sounds.wav');
-    crowdAudioRef.current.loop = true;
-    crowdAudioRef.current.volume = 0.3; // Adjust volume as needed
-  }
-
-  if (gameState === 'playing') {
-    // Play when game starts
-    crowdAudioRef.current.play().catch(e => console.log("Audio play blocked by browser:", e));
-  } else {
-    // Pause and reset when in Menu or Game Over
-    crowdAudioRef.current.pause();
-    crowdAudioRef.current.currentTime = 0;
-  }
-
-  // Cleanup on unmount
-  return () => {
-    if (crowdAudioRef.current) {
-      crowdAudioRef.current.pause();
+  useEffect(() => {
+    // Initialize the audio object if it doesn't exist
+    if (!crowdAudioRef.current) {
+      crowdAudioRef.current = new Audio('../cheering-sounds.wav');
+      crowdAudioRef.current.loop = true;
+      crowdAudioRef.current.volume = 0.3; // Adjust volume as needed
     }
-  };
-}, [gameState]);
+
+    if (gameState === 'playing') {
+      // Play when game starts
+      crowdAudioRef.current.play().catch(e => console.log("Audio play blocked by browser:", e));
+    } else {
+      // Pause and reset when in Menu or Game Over
+      crowdAudioRef.current.pause();
+      crowdAudioRef.current.currentTime = 0;
+    }
+
+    // Cleanup on unmount
+    return () => {
+      if (crowdAudioRef.current) {
+        crowdAudioRef.current.pause();
+      }
+    };
+  }, [gameState]);
 
   const getDirectionRow = (dirX, dirY) => {
     const angle = Math.atan2(dirY, dirX);
@@ -524,15 +625,15 @@ useEffect(() => {
   };
 
   const drawSprite = (ctx, player, isSelected, isPossessor) => {
-  let img, isLoaded;
-  
-  if (player.team === 'skeleton') {
-    img = player.spriteRef.current;
-    isLoaded = img !== null;
-  } else {
-    img = player.team === 'player' ? spriteImageRef.current : aiSpriteImageRef.current;
-    isLoaded = player.team === 'player' ? spriteLoaded : aiSpriteLoaded;
-  }
+    let img, isLoaded;
+
+    if (player.team === 'skeleton') {
+      img = player.spriteRef.current;
+      isLoaded = img !== null;
+    } else {
+      img = player.team === 'player' ? spriteImageRef.current : aiSpriteImageRef.current;
+      isLoaded = player.team === 'player' ? spriteLoaded : aiSpriteLoaded;
+    }
 
     if (!img || !isLoaded) {
       ctx.fillStyle = player.team === 'player' ? 'rgba(255, 255, 0, 0.5)' : 'rgba(0, 255, 255, 0.5)';
@@ -655,11 +756,91 @@ useEffect(() => {
 
       if (remaining <= 0) {
         setGameState('gameOver');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
         return;
       }
       const goalTop = (500 / 2) - (GOAL_HEIGHT / 2) + CROWD_HEIGHT;
 
       if (!game.isPaused) {
+        // ADD THIS ENTIRE SECTION - Skeleton spawn logic
+        if (difficulty === 'hard' && !game.skeletonsSpawned) {
+          game.skeletonSpawnTimer++;
+
+          // Spawn after 3 seconds (180 frames at 60fps)
+          if (game.skeletonSpawnTimer >= 180) {
+            game.skeletonsSpawned = true;
+
+            // Create skeletons with spawn positions
+            const skeleton1Pos = { x: 400, y: 180 + CROWD_HEIGHT };
+            const skeleton2Pos = { x: 400, y: 380 + CROWD_HEIGHT };
+
+            game.skeletons = [
+              {
+                x: skeleton1Pos.x,
+                y: skeleton1Pos.y,
+                vx: 0,
+                vy: 0,
+                team: 'skeleton',
+                lastDir: { x: -1, y: 0 },
+                frame: 0,
+                animTimer: 0,
+                alive: true,
+                spriteRef: skeleton1ImageRef,
+                spawning: true // ADD: Flag to indicate spawning state
+              },
+              {
+                x: skeleton2Pos.x,
+                y: skeleton2Pos.y,
+                vx: 0,
+                vy: 0,
+                team: 'skeleton',
+                lastDir: { x: -1, y: 0 },
+                frame: 0,
+                animTimer: 0,
+                alive: true,
+                spriteRef: skeleton2ImageRef,
+                spawning: true // ADD: Flag to indicate spawning state
+              }
+            ];
+
+            // Create spawn animations (rising from ground effect)
+            game.skeletonSpawnAnimations = [
+              {
+                x: skeleton1Pos.x,
+                y: skeleton1Pos.y,
+                spriteRef: skeleton1ImageRef,
+                progress: 0,
+                duration: 40, // 40 frames = ~0.67 seconds
+                skeletonIndex: 0
+              },
+              {
+                x: skeleton2Pos.x,
+                y: skeleton2Pos.y,
+                spriteRef: skeleton2ImageRef,
+                progress: 0,
+                duration: 40,
+                skeletonIndex: 1
+              }
+            ];
+          }
+        }
+
+        // Update spawn animations
+        if (game.skeletonSpawnAnimations.length > 0) {
+          game.skeletonSpawnAnimations = game.skeletonSpawnAnimations.filter(anim => {
+            anim.progress++;
+
+            // When animation completes, mark skeleton as fully spawned
+            if (anim.progress >= anim.duration) {
+              if (game.skeletons[anim.skeletonIndex]) {
+                game.skeletons[anim.skeletonIndex].spawning = false;
+              }
+              return false; // Remove animation
+            }
+
+            return true; // Keep animation
+          });
+        }
         const isOutOfBounds = ball.x < -20 || ball.x > FIELD_WIDTH + 20 || ball.y < CROWD_HEIGHT - 20 || ball.y > FIELD_HEIGHT + 20;
         const isStuck = Math.abs(ball.vx) < 0.05 && Math.abs(ball.vy) < 0.05 && game.possessor === null;
 
@@ -714,101 +895,106 @@ useEffect(() => {
 
 
         // Skeleton AI - Hunt the players
-game.skeletons.forEach((skeleton, idx) => {
-  if (!skeleton.alive) return;
-  
-  // Find nearest alive player
-  let nearestPlayer = null;
-  let minDist = Infinity;
-  
-  game.players.forEach(p => {
-    if (!p.alive) return;
-    const dist = Math.sqrt((p.x - skeleton.x) ** 2 + (p.y - skeleton.y) ** 2);
-    if (dist < minDist) {
-      minDist = dist;
-      nearestPlayer = p;
-    }
-  });
-  
-  if (nearestPlayer) {
-    // Chase the player
-    const dx = nearestPlayer.x - skeleton.x;
-    const dy = nearestPlayer.y - skeleton.y;
-    const dist = Math.sqrt(dx * dx + dy * dy);
-    
-    if (dist > 5) {
-      const skeletonSpeed = settings.skeletonSpeed || 2.5;
-      skeleton.vx = (dx / dist) * skeletonSpeed;
-      skeleton.vy = (dy / dist) * skeletonSpeed;
-      const mag = Math.sqrt(skeleton.vx * skeleton.vx + skeleton.vy * skeleton.vy);
-      if (mag > 0) skeleton.lastDir = { x: skeleton.vx / mag, y: skeleton.vy / mag };
-      skeleton.animTimer++;
-      if (skeleton.animTimer % 4 === 0) skeleton.frame++;
-    }
-    
-    skeleton.vx *= 0.88;
-    skeleton.vy *= 0.88;
-    
-// Check collision with player
-if (dist < PLAYER_SIZE / 2 + PLAYER_SIZE / 2) {
-  // Create death animation for both
-  game.deathAnimations.push({
-    skeletonX: skeleton.x,
-    skeletonY: skeleton.y,
-    playerX: nearestPlayer.x,
-    playerY: nearestPlayer.y,
-    skeletonSprite: skeleton.spriteRef,
-    playerSprite: spriteImageRef,
-    progress: 0,
-    duration: 30 // frames
-  });
+        game.skeletons.forEach((skeleton, idx) => {
+          if (!skeleton.alive || skeleton.spawning) return; // ADD: Don't move while spawning
 
-  // NEW: Reset possession so the ball drops if the player dies
-  if (game.possessor === game.players.indexOf(nearestPlayer)) {
-    game.possessor = null;
-    game.ball.vx = (Math.random() - 0.5) * 5; // Give ball a little bump
-    game.ball.vy = (Math.random() - 0.5) * 5;
-  }
-  
-  // Kill both skeleton and player
-  skeleton.alive = false;
-  nearestPlayer.alive = false;
-  
-  // If selected player died, switch to other player if alive
-  if (game.selectedPlayer === game.players.indexOf(nearestPlayer)) {
-    const otherPlayerIdx = game.selectedPlayer === 0 ? 1 : 0;
-    if (game.players[otherPlayerIdx].alive) {
-      game.selectedPlayer = otherPlayerIdx;
-    }
-  }
-  
-  // Check if all players are dead - game over
-  const anyPlayerAlive = game.players.some(p => p.alive);
-  if (!anyPlayerAlive) {
-    setGameState('gameOver');
-  }
-}
+          // Find nearest alive player
+          let nearestPlayer = null;
+          let minDist = Infinity;
 
-  }
-});
+          game.players.forEach(p => {
+            if (!p.alive) return;
+            const dist = Math.sqrt((p.x - skeleton.x) ** 2 + (p.y - skeleton.y) ** 2);
+            if (dist < minDist) {
+              minDist = dist;
+              nearestPlayer = p;
+            }
+          });
 
-// Update skeleton positions
-game.skeletons.forEach(skeleton => {
-  if (!skeleton.alive) return;
-  skeleton.x += skeleton.vx;
-  skeleton.y += skeleton.vy;
-  skeleton.x = Math.max(PLAYER_SIZE / 2, Math.min(FIELD_WIDTH - PLAYER_SIZE / 2, skeleton.x));
-  skeleton.y = Math.max(CROWD_HEIGHT + PLAYER_SIZE / 2, Math.min(FIELD_HEIGHT - PLAYER_SIZE / 2, skeleton.y));
-});
+          if (nearestPlayer) {
+            // Chase the player
+            const dx = nearestPlayer.x - skeleton.x;
+            const dy = nearestPlayer.y - skeleton.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
 
-// Update death animations
-game.deathAnimations = game.deathAnimations.filter(anim => {
-  anim.progress++;
-  return anim.progress < anim.duration;
-});
+            if (dist > 5) {
+              const skeletonSpeed = settings.skeletonSpeed || 2.5;
+              skeleton.vx = (dx / dist) * skeletonSpeed;
+              skeleton.vy = (dy / dist) * skeletonSpeed;
+              const mag = Math.sqrt(skeleton.vx * skeleton.vx + skeleton.vy * skeleton.vy);
+              if (mag > 0) skeleton.lastDir = { x: skeleton.vx / mag, y: skeleton.vy / mag };
+              skeleton.animTimer++;
+              if (skeleton.animTimer % 4 === 0) skeleton.frame++;
+            }
 
-[...game.players, ...game.ai].forEach(p => {
-  if (!p.alive && p.team === 'player') return; // Only skip dead players
+            skeleton.vx *= 0.88;
+            skeleton.vy *= 0.88;
+
+            // Check collision with player
+            if (dist < PLAYER_SIZE / 2 + PLAYER_SIZE / 2) {
+              // Create death animation for both
+              // Create death animation for both
+              game.deathAnimations.push({
+                skeletonX: skeleton.x,
+                skeletonY: skeleton.y,
+                playerX: nearestPlayer.x,
+                playerY: nearestPlayer.y,
+                collisionX: (skeleton.x + nearestPlayer.x) / 2, // ADD: Midpoint of collision
+                collisionY: (skeleton.y + nearestPlayer.y) / 2, // ADD: Midpoint of collision
+                skeletonSprite: skeleton.spriteRef,
+                playerSprite: spriteImageRef,
+                progress: 0,
+                duration: 30 // frames
+              });
+
+              // NEW: Reset possession so the ball drops if the player dies
+              if (game.possessor === game.players.indexOf(nearestPlayer)) {
+                game.possessor = null;
+                game.ball.vx = (Math.random() - 0.5) * 5; // Give ball a little bump
+                game.ball.vy = (Math.random() - 0.5) * 5;
+              }
+
+              // Kill both skeleton and player
+              skeleton.alive = false;
+              nearestPlayer.alive = false;
+
+              // If selected player died, switch to other player if alive
+              if (game.selectedPlayer === game.players.indexOf(nearestPlayer)) {
+                const otherPlayerIdx = game.selectedPlayer === 0 ? 1 : 0;
+                if (game.players[otherPlayerIdx].alive) {
+                  game.selectedPlayer = otherPlayerIdx;
+                }
+              }
+
+              // Check if all players are dead - award goal to AI and reset
+              const anyPlayerAlive = game.players.some(p => p.alive);
+              if (!anyPlayerAlive) {
+                // Award goal to AI team
+                handleScore('ai');
+                // Reset will happen automatically via handleScore's setTimeout
+              }
+            }
+
+          }
+        });
+
+        // Update skeleton positions
+        game.skeletons.forEach(skeleton => {
+          if (!skeleton.alive) return;
+          skeleton.x += skeleton.vx;
+          skeleton.y += skeleton.vy;
+          skeleton.x = Math.max(PLAYER_SIZE / 2, Math.min(FIELD_WIDTH - PLAYER_SIZE / 2, skeleton.x));
+          skeleton.y = Math.max(CROWD_HEIGHT + PLAYER_SIZE / 2, Math.min(FIELD_HEIGHT - PLAYER_SIZE / 2, skeleton.y));
+        });
+
+        // Update death animations
+        game.deathAnimations = game.deathAnimations.filter(anim => {
+          anim.progress++;
+          return anim.progress < anim.duration;
+        });
+
+        [...game.players, ...game.ai].forEach(p => {
+          if (!p.alive && p.team === 'player') return; // Only skip dead players
           p.x += p.vx; p.y += p.vy;
           p.x = Math.max(PLAYER_SIZE / 2, Math.min(FIELD_WIDTH - PLAYER_SIZE / 2, p.x));
           p.y = Math.max(CROWD_HEIGHT + PLAYER_SIZE / 2, Math.min(FIELD_HEIGHT - PLAYER_SIZE / 2, p.y));
@@ -831,13 +1017,13 @@ game.deathAnimations = game.deathAnimations.filter(anim => {
             ball.rotation += speed * 0.15;
           }
         } else {
-            game.players.forEach((p, idx) => {
-              if (!p.alive) return; // ADD THIS
-              if (p.shotTimer === 0) {
-                const dist = Math.sqrt((ball.x - p.x) ** 2 + (ball.y - p.y) ** 2);
-                if (dist < PLAYER_SIZE / 2 + BALL_RADIUS + 2) game.possessor = idx;
-              }
-            });
+          game.players.forEach((p, idx) => {
+            if (!p.alive) return; // ADD THIS
+            if (p.shotTimer === 0) {
+              const dist = Math.sqrt((ball.x - p.x) ** 2 + (ball.y - p.y) ** 2);
+              if (dist < PLAYER_SIZE / 2 + BALL_RADIUS + 2) game.possessor = idx;
+            }
+          });
           ball.x += ball.vx; ball.y += ball.vy;
           ball.vx *= settings.ballFriction; ball.vy *= settings.ballFriction;
         }
@@ -870,59 +1056,159 @@ game.deathAnimations = game.deathAnimations.filter(anim => {
         ctx.restore();
       };
       drawGoal(0, true); drawGoal(FIELD_WIDTH, false);
-game.players.forEach((p, i) => {
-  if (p.alive) {
-    drawSprite(ctx, p, i === game.selectedPlayer, game.possessor === i);
-  }
-});
+      game.players.forEach((p, i) => {
+        if (p.alive) {
+          drawSprite(ctx, p, i === game.selectedPlayer, game.possessor === i);
+        }
+      });
       game.ai.forEach((p) => drawSprite(ctx, p, false, false));
 
       // Draw skeletons (ADD THIS HERE)
-game.skeletons.forEach((skeleton) => {
-  if (skeleton.alive) {
-    drawSprite(ctx, skeleton, false, false);
-  }
-});
+      game.skeletons.forEach((skeleton) => {
+        if (skeleton.alive) {
+          drawSprite(ctx, skeleton, false, false);
+        }
+        // Draw skeleton spawn animations
+        game.skeletonSpawnAnimations.forEach(anim => {
+          const spawnProgress = anim.progress / anim.duration; // 0 to 1
 
-// Draw death animations
-game.deathAnimations.forEach(anim => {
-  const fallProgress = anim.progress / anim.duration;
-  const fallDistance = 30 * fallProgress; // Fall 30 pixels
-  const opacity = 1 - fallProgress; // Fade out
-  
-  ctx.save();
-  ctx.globalAlpha = opacity;
-  
-  // Draw dying skeleton
-  if (anim.skeletonSprite && anim.skeletonSprite.current) {
-    const skeleImg = anim.skeletonSprite.current;
-    const drawWidth = SPRITE_WIDTH * SPRITE_SCALE * 2.5;
-    const drawHeight = SPRITE_HEIGHT * SPRITE_SCALE * 2.5;
-    ctx.drawImage(
-      skeleImg,
-      0, 0, SPRITE_WIDTH, SPRITE_HEIGHT,
-      Math.floor(anim.skeletonX - drawWidth / 2),
-      Math.floor(anim.skeletonY - drawHeight + 25 + fallDistance),
-      drawWidth, drawHeight
-    );
-  }
-  
-  // Draw dying player
-  if (anim.playerSprite && anim.playerSprite.current) {
-    const playerImg = anim.playerSprite.current;
-    const drawWidth = SPRITE_WIDTH * SPRITE_SCALE * 2.5;
-    const drawHeight = SPRITE_HEIGHT * SPRITE_SCALE * 2.5;
-    ctx.drawImage(
-      playerImg,
-      0, 0, SPRITE_WIDTH, SPRITE_HEIGHT,
-      Math.floor(anim.playerX - drawWidth / 2),
-      Math.floor(anim.playerY - drawHeight + 25 + fallDistance),
-      drawWidth, drawHeight
-    );
-  }
-  
-  ctx.restore();
-});
+          // Rising effect: skeleton rises from 50 pixels below ground
+          const riseDistance = 50 * (1 - spawnProgress); // Starts at 50, ends at 0
+          const currentY = anim.y + riseDistance;
+
+          // Fade in effect
+          const opacity = Math.min(1, spawnProgress * 2); // Fade in during first 50%
+
+          ctx.save();
+          ctx.globalAlpha = opacity;
+
+          // Draw ground crack/portal effect
+          if (spawnProgress < 0.7) { // Show portal for first 70% of animation
+            const crackProgress = spawnProgress / 0.7;
+            const crackWidth = 60 + (crackProgress * 20); // Expands
+            const crackOpacity = (1 - crackProgress) * 0.6;
+
+            // Dark purple glow
+            const gradient = ctx.createRadialGradient(
+              anim.x, anim.y, 0,
+              anim.x, anim.y, crackWidth
+            );
+            gradient.addColorStop(0, `rgba(138, 43, 226, ${crackOpacity})`); // Purple center
+            gradient.addColorStop(0.5, `rgba(75, 0, 130, ${crackOpacity * 0.5})`); // Indigo middle
+            gradient.addColorStop(1, 'rgba(75, 0, 130, 0)'); // Transparent edge
+
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(anim.x, anim.y, crackWidth, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Pulsing crack lines
+            ctx.strokeStyle = `rgba(138, 43, 226, ${crackOpacity * 0.8})`;
+            ctx.lineWidth = 2;
+            for (let i = 0; i < 8; i++) {
+              const angle = (i * Math.PI / 4) + (crackProgress * Math.PI / 4);
+              const length = 30 * crackProgress;
+              ctx.beginPath();
+              ctx.moveTo(anim.x, anim.y);
+              ctx.lineTo(
+                anim.x + Math.cos(angle) * length,
+                anim.y + Math.sin(angle) * length
+              );
+              ctx.stroke();
+            }
+          }
+
+          // Draw the skeleton sprite rising
+          if (anim.spriteRef && anim.spriteRef.current) {
+            const img = anim.spriteRef.current;
+            const drawWidth = SPRITE_WIDTH * SPRITE_SCALE * 2.5;
+            const drawHeight = SPRITE_HEIGHT * SPRITE_SCALE * 2.5;
+
+            ctx.imageSmoothingEnabled = false;
+
+            // Draw skeleton with vertical offset
+            ctx.drawImage(
+              img,
+              0, 0, // Front-facing sprite
+              SPRITE_WIDTH, SPRITE_HEIGHT,
+              Math.floor(anim.x - drawWidth / 2),
+              Math.floor(currentY - drawHeight + 25),
+              drawWidth, drawHeight
+            );
+          }
+
+          ctx.restore();
+        });
+      });
+
+      // Draw death animations
+      game.deathAnimations.forEach(anim => {
+        const fallProgress = anim.progress / anim.duration;
+        const fallDistance = 30 * fallProgress; // Fall 30 pixels
+        const opacity = 1 - fallProgress; // Fade out
+
+        ctx.save();
+        ctx.globalAlpha = opacity;
+
+        // ADD THIS ENTIRE SECTION - Red aura effect
+        if (anim.progress < anim.duration * 0.6) { // Only show aura for first 60% of animation
+          const auraProgress = anim.progress / (anim.duration * 0.6);
+          const auraRadius = 40 + (auraProgress * 60); // Expands from 40 to 100
+          const auraOpacity = (1 - auraProgress) * 0.7; // Fades from 0.7 to 0
+
+          // Create radial gradient for "explosion" effect
+          const gradient = ctx.createRadialGradient(
+            anim.collisionX, anim.collisionY, 0,
+            anim.collisionX, anim.collisionY, auraRadius
+          );
+          gradient.addColorStop(0, `rgba(255, 0, 0, ${auraOpacity})`); // Bright red center
+          gradient.addColorStop(0.5, `rgba(220, 0, 0, ${auraOpacity * 0.5})`); // Dark red middle
+          gradient.addColorStop(1, 'rgba(255, 0, 0, 0)'); // Transparent edge
+
+          ctx.fillStyle = gradient;
+          ctx.beginPath();
+          ctx.arc(anim.collisionX, anim.collisionY, auraRadius, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Add pulsing ring effect
+          const ringRadius = 30 + (auraProgress * 50);
+          ctx.strokeStyle = `rgba(255, 50, 50, ${(1 - auraProgress) * 0.8})`;
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.arc(anim.collisionX, anim.collisionY, ringRadius, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+
+        // Draw dying skeleton
+        if (anim.skeletonSprite && anim.skeletonSprite.current) {
+          const skeleImg = anim.skeletonSprite.current;
+          const drawWidth = SPRITE_WIDTH * SPRITE_SCALE * 2.5;
+          const drawHeight = SPRITE_HEIGHT * SPRITE_SCALE * 2.5;
+          ctx.drawImage(
+            skeleImg,
+            0, 0, SPRITE_WIDTH, SPRITE_HEIGHT,
+            Math.floor(anim.skeletonX - drawWidth / 2),
+            Math.floor(anim.skeletonY - drawHeight + 25 + fallDistance),
+            drawWidth, drawHeight
+          );
+        }
+
+        // Draw dying player
+        if (anim.playerSprite && anim.playerSprite.current) {
+          const playerImg = anim.playerSprite.current;
+          const drawWidth = SPRITE_WIDTH * SPRITE_SCALE * 2.5;
+          const drawHeight = SPRITE_HEIGHT * SPRITE_SCALE * 2.5;
+          ctx.drawImage(
+            playerImg,
+            0, 0, SPRITE_WIDTH, SPRITE_HEIGHT,
+            Math.floor(anim.playerX - drawWidth / 2),
+            Math.floor(anim.playerY - drawHeight + 25 + fallDistance),
+            drawWidth, drawHeight
+          );
+        }
+
+        ctx.restore();
+      });
 
       // PIXELATED BALL WITH BLACK SQUARED SHAPES AND CONDITIONAL ROTATION
       ctx.save();
@@ -990,47 +1276,21 @@ game.deathAnimations.forEach(anim => {
     // This forces the next game to generate a NEW start timestamp
     gameRef.current.gameStartTime = null;
 
+
     setGameState('menu');
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
   };
 
 
-//   const startMatch = () => {
-//   resetPositions(); // Forces all 'alive' flags to true and positions to start
-//   setGameState('playing');
-// };
 
-  // const MeebitAvatar = ({ id, loaded }) => (
-  //   <div style={styles.avatarCircle}>
-  //     {!loaded && <div style={styles.avatarLoading}>LOADING...</div>}
-  //     <div style={{ ...styles.avatarSprite, backgroundImage: `url(https://corsproxy.io/?${encodeURIComponent(`https://files.meebits.app/sprites/${id}.png`)})`, backgroundPosition: '0 -204px', opacity: loaded ? 1 : 0 }} />
-  //   </div>
-  // );
+  const startMatch = () => {
+    resetPositions(); // Forces all 'alive' flags to true and positions to start
+    setGameState('playing');
 
-//   const MeebitAvatar = ({ id, loaded }) => (
-//   // The 'key' ensures the animation restarts when the ID changes
-//   <div key={id} style={{ 
-//     ...styles.avatarCircle,
-//     animation: introAnimation
-//   }}>
-//     {!loaded && <div style={styles.avatarLoading}>LOADING...</div>}
-//     <div 
-// style={{ 
-//           ...styles.avatarSprite, 
-//           backgroundImage: `url(https://corsproxy.io/?${encodeURIComponent(`https://files.meebits.app/sprites/${id}.png`)})`, 
-//           backgroundPositionX: '0px',
-//           transformOrigin: 'center bottom',
-//           /* 0.6s duration
-//              ease-in-out for the jump physics
-//              forwards to keep them facing front
-//           */
-//         }}
-//     />
-//   </div>
-// );
-const startMatch = () => {
-  resetPositions(); // Forces all 'alive' flags to true and positions to start
-  setGameState('playing');
-};
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
 
   if (gameState === 'menu') {
@@ -1039,57 +1299,61 @@ const startMatch = () => {
     console.log(isAssetsReady, 'isAssetsReady ??????')
     return (
       <div style={styles.menuContainer}>
-        <h1 style={styles.title}>Meebits Mini Soccer</h1>
-        <div style={{ ...styles.avatarGrid, gridTemplateColumns: window.innerWidth >= 768 ? 'repeat(2, 1fr)' : '1fr' }}>
-          <div style={styles.avatarCard}>
-            <MeebitAvatar id={meebitNumber} loaded={spriteLoaded} />
-            <label style={{ ...styles.label, ...styles.labelGreen }}>Home ID</label>
-            <input type="text" value={meebitNumber} onChange={(e) => setMeebitNumber(e.target.value.replace(/\D/g, ''))} style={styles.input} />
+        <canvas ref={pixelCanvasRef} style={styles.pixelCanvas} />
+        <div style={styles.menuContent}>
+          <h1 style={styles.title}>Meebits Mini Soccer</h1>
+          <div style={{ ...styles.avatarGrid, gridTemplateColumns: window.innerWidth >= 768 ? 'repeat(2, 1fr)' : '1fr' }}>
+            <div style={styles.avatarCard}>
+              <MeebitAvatar id={meebitNumber} loaded={spriteLoaded} />
+              <label style={{ ...styles.label, ...styles.labelGreen }}>Home Team</label>
+              <input type="text" value={meebitNumber} onChange={(e) => setMeebitNumber(e.target.value.replace(/\D/g, ''))} style={styles.input} />
+            </div>
+            <div style={styles.avatarCard}>
+              <MeebitAvatar id={aiMeebitNumber} loaded={aiSpriteLoaded} />
+              <label style={{ ...styles.label, ...styles.labelBlue }}>Away Team</label>
+              <input type="text" value={aiMeebitNumber} onChange={(e) => setAiMeebitNumber(e.target.value.replace(/\D/g, ''))} style={styles.input} />
+            </div>
           </div>
-          <div style={styles.avatarCard}>
-            <MeebitAvatar id={aiMeebitNumber} loaded={aiSpriteLoaded} />
-            <label style={{ ...styles.label, ...styles.labelBlue }}>Away ID</label>
-            <input type="text" value={aiMeebitNumber} onChange={(e) => setAiMeebitNumber(e.target.value.replace(/\D/g, ''))} style={styles.input} />
+
+          <p style={{ ...styles.scoreText, fontSize: "22px" }}> Difficulty:</p>
+          <div style={styles.difficultyGrid}>
+
+            {['easy', 'medium', 'hard'].map(lvl => (
+              <button key={lvl} onClick={() => setDifficulty(lvl)} style={difficulty === lvl ? { ...styles.difficultyButton, ...styles.difficultyButtonActive } : styles.difficultyButton}>
+                <span>{lvl.toUpperCase()}</span>
+              </button>
+            ))}
           </div>
-        </div>
-           <p style={{ ...styles.scoreText, fontSize: "22px" }}> Difficulty:</p>
-        <div style={styles.difficultyGrid}>
-          
-          {['easy', 'medium', 'hard'].map(lvl => (
-            <button key={lvl} onClick={() => setDifficulty(lvl)} style={difficulty === lvl ? { ...styles.difficultyButton, ...styles.difficultyButtonActive } : styles.difficultyButton}>
-              <span>{lvl.toUpperCase()}</span>
-            </button>
-          ))}
-        </div>
           <p style={{ ...styles.scoreText, fontSize: "22px" }}> Duration:</p>
-        <div style={styles.difficultyGrid}>
-          {['30', '60', '90'].map(mode => (
-            <button
-              key={mode}
-              onClick={() => {
-                setGameMode(mode);
-                setTimeRemaining(parseInt(mode));
-              }}
-              style={gameMode === mode ? { ...styles.difficultyButton, ...styles.difficultyButtonActive } : styles.difficultyButton}
-            >
-              <span>{mode} SEC</span>
-            </button>
-          ))}
+          <div style={styles.difficultyGrid}>
+            {['30', '60', '90'].map(mode => (
+              <button
+                key={mode}
+                onClick={() => {
+                  setGameMode(mode);
+                  setTimeRemaining(parseInt(mode));
+                }}
+                style={gameMode === mode ? { ...styles.difficultyButton, ...styles.difficultyButtonActive } : styles.difficultyButton}
+              >
+                <span>{mode} SEC</span>
+              </button>
+            ))}
+          </div>
+          <p style={{ ...styles.scoreText, fontSize: "22px" }}> Controls:</p>
+          <p style={{ ...styles.scoreText, fontSize: "18px", textAlign: 'center' }}>Move: "WASD" | Swap: "Space" | Shoot: "Enter"</p>
+
+
+          <button
+            onClick={startMatch}
+            disabled={!isAssetsReady}
+            style={!isAssetsReady ?
+              { ...styles.kickoffButton, ...styles.kickoffButtonDisabled } :
+              { ...styles.kickoffButton, ...styles.kickoffButtonEnabled }
+            }
+          >
+            {isAssetsReady ? "KICK OFF" : "LOADING ASSETS..."}
+          </button>
         </div>
-        <p style={{ ...styles.scoreText, fontSize: "22px" }}> Controls:</p>
-        <p style={{ ...styles.scoreText, fontSize: "18px", textAlign: 'center' }}>Move: "WASD" | Swap: "Space" | Shoot: "Enter"</p>
-
-
-        <button
-          onClick={startMatch}
-          disabled={!isAssetsReady}
-          style={!isAssetsReady ?
-            { ...styles.kickoffButton, ...styles.kickoffButtonDisabled } :
-            { ...styles.kickoffButton, ...styles.kickoffButtonEnabled }
-          }
-        >
-          {isAssetsReady ? "KICK OFF" : "LOADING ASSETS..."}
-        </button>
       </div>
     );
   }

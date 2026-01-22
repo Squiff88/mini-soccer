@@ -31,7 +31,7 @@ body {
   display: flex;
   place-items: center;
   min-width: 320px;
-  min-height: 125vh;
+  min-height: 135vh;
 }
 
 h1 {

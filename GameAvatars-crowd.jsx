@@ -402,6 +402,26 @@ const MiniSoccer = () => {
     g.keys = {};
   };
 
+  useEffect(() => {
+  const styleSheet = document.createElement("style");
+  styleSheet.innerText = `
+    @keyframes turnAndThumb {
+      /* TURN AROUND PHASE (0% to 70%) */
+      0% { background-position: 0px 0px; }            /* Front */
+      15% { background-position: 0px -85px; }         /* Right */
+      30% { background-position: 0px -170px; }        /* Back */
+      45% { background-position: 0px -255px; }        /* Left */
+      60% { background-position: 0px 0px; }           /* Front again */
+      
+      /* TRANSITION TO THUMBS UP (70% to 100%) */
+      70% { background-position: -170px -595px; }     /* Row 7, Frame 2 (Common Pose Row) */
+      100% { background-position: -170px -595px; }    /* Hold Pose */
+    }
+  `;
+  document.head.appendChild(styleSheet);
+  return () => document.head.removeChild(styleSheet);
+}, []);
+
 
   useEffect(() => {
     const loadCrowd = async () => {
@@ -767,6 +787,7 @@ useEffect(() => {
       ctx.restore();
 
       animationRef.current = requestAnimationFrame(gameLoop);
+      
     };
 
     const handleScore = (team) => {
