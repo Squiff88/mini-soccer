@@ -31,7 +31,7 @@ body {
   display: flex;
   place-items: center;
   min-width: 320px;
-  min-height: 100vh;
+  min-height: 125vh;
 }
 
 h1 {
@@ -82,13 +82,10 @@ html, body, #root {
 
 @keyframes turnAround {
   0% { 
-    background-position-y: -0px;
-    transform: scale(1.98) translateY(0); 
-    transform: rotateY(-90deg);
+    background-position-y: 40%;
+
   }
   100% { 
-    background-position-y: -160px; 
-    transform: rotateY(190deg);
-    transform: scale(2.1);
+    background-position-y: 101%; 
   }
 }

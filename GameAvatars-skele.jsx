@@ -16,7 +16,7 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     // minHeight: '110vh',
     height: '100%',
     backgroundColor: '#020617',
@@ -277,14 +277,14 @@ const styles = {
   
 };
 
-const skeleAvatars = ['16102', '11355', '15710']
+const skeleAvatars = ['16102', '11355', '15710', '9700', '16633', '3595']
 
 
 
 const diffConfig = {
   easy: { aiSpeed: 3, playerSpeed: 3, ballFriction: 0.98, aiIntelligence: 1.5, shootForce: 18 },
-  medium: { aiSpeed: 4, playerSpeed: 4, ballFriction: 0.985, aiIntelligence: 1.75, shootForce: 21 },
-  hard: { aiSpeed: 4, playerSpeed: 4, ballFriction: 0.99, aiIntelligence: 2, shootForce: 25 },
+  medium: { aiSpeed: 3.2, playerSpeed: 3.2, ballFriction: 0.985, aiIntelligence: 1.75, shootForce: 21 },
+  hard: { aiSpeed: 1, playerSpeed: 1, ballFriction: 0.99, aiIntelligence: 2, shootForce: 25, skeletonSpeed: 1 },
   "30": { duration: 30 },
   "60": { duration: 60 },
   "90": { duration: 90 },
@@ -344,6 +344,11 @@ const MiniSoccer = () => {
   const [aiSpriteLoaded, setAiSpriteLoaded] = useState(false);
   const [introAnimation, setIntroAnimation] = useState(null);
 
+const skeleton1ImageRef = useRef(null);
+const skeleton2ImageRef = useRef(null);
+const [skeleton1Loaded, setSkeleton1Loaded] = useState(false);
+const [skeleton2Loaded, setSkeleton2Loaded] = useState(false);
+
   const spriteImageRef = useRef(null);
   const aiSpriteImageRef = useRef(null);
 
@@ -368,39 +373,56 @@ const MiniSoccer = () => {
 
   const gameRef = useRef({
     players: [
-      { x: 150, y: 200 + CROWD_HEIGHT, vx: 0, vy: 0, team: 'player', lastDir: { x: 1, y: 0 }, shotTimer: 0, frame: 0, animTimer: 0 },
-      { x: 150, y: 300 + CROWD_HEIGHT, vx: 0, vy: 0, team: 'player', lastDir: { x: 1, y: 0 }, shotTimer: 0, frame: 0, animTimer: 0 }
+      { x: 150, y: 200 + CROWD_HEIGHT, vx: 0, vy: 0, team: 'player', lastDir: { x: 1, y: 0 }, shotTimer: 0, frame: 0, animTimer: 0, alive: true },
+      { x: 150, y: 300 + CROWD_HEIGHT, vx: 0, vy: 0, team: 'player', lastDir: { x: 1, y: 0 }, shotTimer: 0, frame: 0, animTimer: 0, alive: true }
     ],
     ai: [
       { x: 650, y: 200 + CROWD_HEIGHT, vx: 0, vy: 0, team: 'ai', role: 'striker', lastDir: { x: -1, y: 0 }, frame: 0, animTimer: 0 },
       { x: 650, y: 300 + CROWD_HEIGHT, vx: 0, vy: 0, team: 'ai', role: 'defender', lastDir: { x: -1, y: 0 }, frame: 0, animTimer: 0 }
     ],
+    skeletons: [],
     ball: { x: FIELD_WIDTH / 2, y: (500 / 2) + CROWD_HEIGHT, vx: 0, vy: 0, rotation: 0 },
     keys: {},
     selectedPlayer: 0,
     possessor: null,
     isPaused: false,
     stuckTimer: 0,
-    gameStartTime: null
+    gameStartTime: null,
+    deathAnimations: []
   });
 
   const animationRef = useRef(null);
 
-  const resetPositions = () => {
-    const g = gameRef.current;
-    g.ball = { x: FIELD_WIDTH / 2, y: (500 / 2) + CROWD_HEIGHT, vx: 0, vy: 0, rotation: 0 };
-    g.possessor = null;
-    g.stuckTimer = 0;
-    g.players.forEach((p, i) => {
-      p.x = 150; p.y = (i === 0 ? 200 : 300) + CROWD_HEIGHT;
-      p.vx = 0; p.vy = 0; p.shotTimer = 0;
-    });
+const resetPositions = () => {
+  const g = gameRef.current;
+  g.ball = { x: FIELD_WIDTH / 2, y: (500 / 2) + CROWD_HEIGHT, vx: 0, vy: 0, rotation: 0 };
+  g.possessor = null;
+  g.stuckTimer = 0;
+  g.players.forEach((p, i) => {
+    p.x = 150; p.y = (i === 0 ? 200 : 300) + CROWD_HEIGHT;
+    p.vx = 0; p.vy = 0; p.shotTimer = 0;
+    p.alive = true; // ADD THIS
+  });
+
+  
+  // ADD THIS - Initialize skeletons for hard mode
+  if (difficulty === 'hard') {
+    g.skeletons = [
+      { x: 400, y: 180 + CROWD_HEIGHT, vx: 0, vy: 0, team: 'skeleton', lastDir: { x: -1, y: 0 }, frame: 0, animTimer: 0, alive: true, spriteRef: skeleton1ImageRef },
+      { x: 400, y: 380 + CROWD_HEIGHT, vx: 0, vy: 0, team: 'skeleton', lastDir: { x: -1, y: 0 }, frame: 0, animTimer: 0, alive: true, spriteRef: skeleton2ImageRef }
+    ];
+  } else {
+    g.skeletons = [];
+  }
+
     g.ai.forEach((p, i) => {
-      p.x = 650; p.y = (i === 0 ? 200 : 300) + CROWD_HEIGHT;
-      p.vx = 0; p.vy = 0;
-    });
-    g.keys = {};
-  };
+    p.x = 650; p.y = (i === 0 ? 200 : 300) + CROWD_HEIGHT;
+    p.vx = 0; p.vy = 0;
+  });
+  g.gameStartTime = Date.now();
+  g.keys = {};
+  g.deathAnimations = []
+};
 
 
   useEffect(() => {
@@ -432,6 +454,24 @@ const MiniSoccer = () => {
     };
     loadCrowd();
   }, []);
+
+  // Load skeleton sprites
+useEffect(() => {
+  const loadSkeletonSprite = async (id, ref, setLoaded) => {
+    setLoaded(false);
+    const spriteUrl = `https://corsproxy.io/?${encodeURIComponent(`https://files.meebits.app/sprites/${id}.png`)}`;
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => { ref.current = img; setLoaded(true); };
+    img.onerror = () => setLoaded(false);
+    img.src = spriteUrl;
+  };
+
+  if (difficulty === 'hard') {
+    loadSkeletonSprite(skeleAvatars[0], skeleton1ImageRef, setSkeleton1Loaded);
+    loadSkeletonSprite(skeleAvatars[1], skeleton2ImageRef, setSkeleton2Loaded);
+  }
+}, [difficulty]);
 
   const loadSpriteAsset = async (id, isPlayer) => {
     const setLoaded = isPlayer ? setSpriteLoaded : setAiSpriteLoaded;
@@ -484,8 +524,16 @@ useEffect(() => {
   };
 
   const drawSprite = (ctx, player, isSelected, isPossessor) => {
-    const img = player.team === 'player' ? spriteImageRef.current : aiSpriteImageRef.current;
-    const isLoaded = player.team === 'player' ? spriteLoaded : aiSpriteLoaded;
+  let img, isLoaded;
+  
+  if (player.team === 'skeleton') {
+    img = player.spriteRef.current;
+    isLoaded = img !== null;
+  } else {
+    img = player.team === 'player' ? spriteImageRef.current : aiSpriteImageRef.current;
+    isLoaded = player.team === 'player' ? spriteLoaded : aiSpriteLoaded;
+  }
+
     if (!img || !isLoaded) {
       ctx.fillStyle = player.team === 'player' ? 'rgba(255, 255, 0, 0.5)' : 'rgba(0, 255, 255, 0.5)';
       ctx.beginPath(); ctx.arc(player.x, player.y, PLAYER_SIZE / 2, 0, Math.PI * 2); ctx.fill();
@@ -617,15 +665,13 @@ useEffect(() => {
 
         if (isStuck) game.stuckTimer++; else game.stuckTimer = 0;
 
-        if (isOutOfBounds || game.stuckTimer > 180) {
+        if (isOutOfBounds || game.stuckTimer > 300) {
           resetPositions();
         }
-
-
-
         // ball.rotation += speed * 0.15; 
 
         game.players.forEach((p, idx) => {
+          if (!p.alive) return; // ADD THIS LINE
           if (p.shotTimer > 0) p.shotTimer--;
           if (idx === game.selectedPlayer) {
             const speed = settings.playerSpeed;
@@ -659,13 +705,110 @@ useEffect(() => {
           const ballDist = Math.sqrt((ball.x - ai.x) ** 2 + (ball.y - ai.y) ** 2);
           if (ballDist < PLAYER_SIZE / 2 + BALL_RADIUS) {
             game.possessor = null;
+            game.stuckTimer = 0; // FIX: Reset the timer when AI touches the ball!
             const angle = Math.atan2(ball.y - ai.y, ball.x - ai.x);
             const kickPower = 8 + (settings.aiIntelligence * 6);
             ball.vx = Math.cos(angle) * kickPower; ball.vy = Math.sin(angle) * kickPower;
           }
         });
 
-        [...game.players, ...game.ai].forEach(p => {
+
+        // Skeleton AI - Hunt the players
+game.skeletons.forEach((skeleton, idx) => {
+  if (!skeleton.alive) return;
+  
+  // Find nearest alive player
+  let nearestPlayer = null;
+  let minDist = Infinity;
+  
+  game.players.forEach(p => {
+    if (!p.alive) return;
+    const dist = Math.sqrt((p.x - skeleton.x) ** 2 + (p.y - skeleton.y) ** 2);
+    if (dist < minDist) {
+      minDist = dist;
+      nearestPlayer = p;
+    }
+  });
+  
+  if (nearestPlayer) {
+    // Chase the player
+    const dx = nearestPlayer.x - skeleton.x;
+    const dy = nearestPlayer.y - skeleton.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    
+    if (dist > 5) {
+      const skeletonSpeed = settings.skeletonSpeed || 2.5;
+      skeleton.vx = (dx / dist) * skeletonSpeed;
+      skeleton.vy = (dy / dist) * skeletonSpeed;
+      const mag = Math.sqrt(skeleton.vx * skeleton.vx + skeleton.vy * skeleton.vy);
+      if (mag > 0) skeleton.lastDir = { x: skeleton.vx / mag, y: skeleton.vy / mag };
+      skeleton.animTimer++;
+      if (skeleton.animTimer % 4 === 0) skeleton.frame++;
+    }
+    
+    skeleton.vx *= 0.88;
+    skeleton.vy *= 0.88;
+    
+// Check collision with player
+if (dist < PLAYER_SIZE / 2 + PLAYER_SIZE / 2) {
+  // Create death animation for both
+  game.deathAnimations.push({
+    skeletonX: skeleton.x,
+    skeletonY: skeleton.y,
+    playerX: nearestPlayer.x,
+    playerY: nearestPlayer.y,
+    skeletonSprite: skeleton.spriteRef,
+    playerSprite: spriteImageRef,
+    progress: 0,
+    duration: 30 // frames
+  });
+
+  // NEW: Reset possession so the ball drops if the player dies
+  if (game.possessor === game.players.indexOf(nearestPlayer)) {
+    game.possessor = null;
+    game.ball.vx = (Math.random() - 0.5) * 5; // Give ball a little bump
+    game.ball.vy = (Math.random() - 0.5) * 5;
+  }
+  
+  // Kill both skeleton and player
+  skeleton.alive = false;
+  nearestPlayer.alive = false;
+  
+  // If selected player died, switch to other player if alive
+  if (game.selectedPlayer === game.players.indexOf(nearestPlayer)) {
+    const otherPlayerIdx = game.selectedPlayer === 0 ? 1 : 0;
+    if (game.players[otherPlayerIdx].alive) {
+      game.selectedPlayer = otherPlayerIdx;
+    }
+  }
+  
+  // Check if all players are dead - game over
+  const anyPlayerAlive = game.players.some(p => p.alive);
+  if (!anyPlayerAlive) {
+    setGameState('gameOver');
+  }
+}
+
+  }
+});
+
+// Update skeleton positions
+game.skeletons.forEach(skeleton => {
+  if (!skeleton.alive) return;
+  skeleton.x += skeleton.vx;
+  skeleton.y += skeleton.vy;
+  skeleton.x = Math.max(PLAYER_SIZE / 2, Math.min(FIELD_WIDTH - PLAYER_SIZE / 2, skeleton.x));
+  skeleton.y = Math.max(CROWD_HEIGHT + PLAYER_SIZE / 2, Math.min(FIELD_HEIGHT - PLAYER_SIZE / 2, skeleton.y));
+});
+
+// Update death animations
+game.deathAnimations = game.deathAnimations.filter(anim => {
+  anim.progress++;
+  return anim.progress < anim.duration;
+});
+
+[...game.players, ...game.ai].forEach(p => {
+  if (!p.alive && p.team === 'player') return; // Only skip dead players
           p.x += p.vx; p.y += p.vy;
           p.x = Math.max(PLAYER_SIZE / 2, Math.min(FIELD_WIDTH - PLAYER_SIZE / 2, p.x));
           p.y = Math.max(CROWD_HEIGHT + PLAYER_SIZE / 2, Math.min(FIELD_HEIGHT - PLAYER_SIZE / 2, p.y));
@@ -688,12 +831,13 @@ useEffect(() => {
             ball.rotation += speed * 0.15;
           }
         } else {
-          game.players.forEach((p, idx) => {
-            if (p.shotTimer === 0) {
-              const dist = Math.sqrt((ball.x - p.x) ** 2 + (ball.y - p.y) ** 2);
-              if (dist < PLAYER_SIZE / 2 + BALL_RADIUS + 2) game.possessor = idx;
-            }
-          });
+            game.players.forEach((p, idx) => {
+              if (!p.alive) return; // ADD THIS
+              if (p.shotTimer === 0) {
+                const dist = Math.sqrt((ball.x - p.x) ** 2 + (ball.y - p.y) ** 2);
+                if (dist < PLAYER_SIZE / 2 + BALL_RADIUS + 2) game.possessor = idx;
+              }
+            });
           ball.x += ball.vx; ball.y += ball.vy;
           ball.vx *= settings.ballFriction; ball.vy *= settings.ballFriction;
         }
@@ -726,8 +870,59 @@ useEffect(() => {
         ctx.restore();
       };
       drawGoal(0, true); drawGoal(FIELD_WIDTH, false);
-      game.players.forEach((p, i) => drawSprite(ctx, p, i === game.selectedPlayer, game.possessor === i));
+game.players.forEach((p, i) => {
+  if (p.alive) {
+    drawSprite(ctx, p, i === game.selectedPlayer, game.possessor === i);
+  }
+});
       game.ai.forEach((p) => drawSprite(ctx, p, false, false));
+
+      // Draw skeletons (ADD THIS HERE)
+game.skeletons.forEach((skeleton) => {
+  if (skeleton.alive) {
+    drawSprite(ctx, skeleton, false, false);
+  }
+});
+
+// Draw death animations
+game.deathAnimations.forEach(anim => {
+  const fallProgress = anim.progress / anim.duration;
+  const fallDistance = 30 * fallProgress; // Fall 30 pixels
+  const opacity = 1 - fallProgress; // Fade out
+  
+  ctx.save();
+  ctx.globalAlpha = opacity;
+  
+  // Draw dying skeleton
+  if (anim.skeletonSprite && anim.skeletonSprite.current) {
+    const skeleImg = anim.skeletonSprite.current;
+    const drawWidth = SPRITE_WIDTH * SPRITE_SCALE * 2.5;
+    const drawHeight = SPRITE_HEIGHT * SPRITE_SCALE * 2.5;
+    ctx.drawImage(
+      skeleImg,
+      0, 0, SPRITE_WIDTH, SPRITE_HEIGHT,
+      Math.floor(anim.skeletonX - drawWidth / 2),
+      Math.floor(anim.skeletonY - drawHeight + 25 + fallDistance),
+      drawWidth, drawHeight
+    );
+  }
+  
+  // Draw dying player
+  if (anim.playerSprite && anim.playerSprite.current) {
+    const playerImg = anim.playerSprite.current;
+    const drawWidth = SPRITE_WIDTH * SPRITE_SCALE * 2.5;
+    const drawHeight = SPRITE_HEIGHT * SPRITE_SCALE * 2.5;
+    ctx.drawImage(
+      playerImg,
+      0, 0, SPRITE_WIDTH, SPRITE_HEIGHT,
+      Math.floor(anim.playerX - drawWidth / 2),
+      Math.floor(anim.playerY - drawHeight + 25 + fallDistance),
+      drawWidth, drawHeight
+    );
+  }
+  
+  ctx.restore();
+});
 
       // PIXELATED BALL WITH BLACK SQUARED SHAPES AND CONDITIONAL ROTATION
       ctx.save();
@@ -798,6 +993,12 @@ useEffect(() => {
     setGameState('menu');
   };
 
+
+//   const startMatch = () => {
+//   resetPositions(); // Forces all 'alive' flags to true and positions to start
+//   setGameState('playing');
+// };
+
   // const MeebitAvatar = ({ id, loaded }) => (
   //   <div style={styles.avatarCircle}>
   //     {!loaded && <div style={styles.avatarLoading}>LOADING...</div>}
@@ -826,6 +1027,11 @@ useEffect(() => {
 //     />
 //   </div>
 // );
+const startMatch = () => {
+  resetPositions(); // Forces all 'alive' flags to true and positions to start
+  setGameState('playing');
+};
+
 
   if (gameState === 'menu') {
     const isAssetsReady = spriteLoaded && aiSpriteLoaded && crowdLoaded;
@@ -875,7 +1081,7 @@ useEffect(() => {
 
 
         <button
-          onClick={() => setGameState('playing')}
+          onClick={startMatch}
           disabled={!isAssetsReady}
           style={!isAssetsReady ?
             { ...styles.kickoffButton, ...styles.kickoffButtonDisabled } :
