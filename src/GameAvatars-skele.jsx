@@ -17,7 +17,7 @@ const styles = {
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'flex-start',
-    minHeight: '100vh', 
+    minHeight: '100vh',
     backgroundColor: '#020617',
     color: '#fff',
     padding: '24px',
@@ -28,7 +28,7 @@ const styles = {
     position: 'absolute',
     top: 0,
     left: 0,
-    bottom:0,
+    bottom: 0,
     width: '100%',
     height: '100%',
     zIndex: 0,
@@ -88,15 +88,15 @@ const styles = {
     position: 'relative',
 
     margin: '0 auto 16px auto', // Combined margin-bottom and margin-auto
-  overflow: 'hidden',
+    overflow: 'hidden',
 
-// 1. THE BRIGHT CORE
-  // Pure white border for that "high-voltage" look
-  border: '2px solid #ffffffb6', 
+    // 1. THE BRIGHT CORE
+    // Pure white border for that "high-voltage" look
+    border: '2px solid #ffffffb6',
 
-  // 2. THE WHITE-DOMINANT GLOW
-  // We stack multiple white layers before hitting the purple tint
-  boxShadow: `
+    // 2. THE WHITE-DOMINANT GLOW
+    // We stack multiple white layers before hitting the purple tint
+    boxShadow: `
     0 0 5px #ffffff80,      /* Crisp white core glow */
     0 0 5px #ffffff65,      /* Intense white secondary glow */
     0 0 45px #d393f86c,      /* Soft purple aura (outer) */
@@ -105,9 +105,9 @@ const styles = {
     inset 0 0 50px rgba(216, 155, 252, 0.4) /* Subtle purple tint on avatar */
   `,
 
-  // 3. 3D "POP"
-  // Gives it a slight lift from the background
-  filter: 'drop-shadow(0 0 38px rgba(255, 255, 255, 0.2))',
+    // 3. 3D "POP"
+    // Gives it a slight lift from the background
+    filter: 'drop-shadow(0 0 38px rgba(255, 255, 255, 0.2))',
   },
   avatarLoading: {
     position: 'absolute',
@@ -120,7 +120,7 @@ const styles = {
     animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
   },
   avatarSprite: {
-    width: '85px',
+    width: '80px',
     height: '100%',
     backgroundRepeat: 'no-repeat',
     transform: 'scale(1.98)',
@@ -260,11 +260,13 @@ const styles = {
     borderLeft: '1px solid #334155',
     borderRight: '1px solid #334155',
     backdropFilter: 'blur(12px)',
+    marginTop: '125px'
   },
   scoreBox: {
     display: 'flex',
-    flexDirection: 'column',
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     flex: 1,
   },
   scoreInner: {
@@ -283,7 +285,6 @@ const styles = {
     textTransform: 'uppercase',
   },
   modeBadge: {
-    marginTop: '12px',
     fontSize: '10px',
     fontWeight: '700',
     color: '#64748b',
@@ -305,6 +306,7 @@ const styles = {
   },
   quitButton: {
     marginTop: '32px',
+    marginBottom: '150px',
     display: 'flex',
     alignItems: 'center',
     gap: '8px',
@@ -329,9 +331,9 @@ const skeleAvatars = ['16102', '11355', '15710', '9700', '16633', '3595']
 
 
 const diffConfig = {
-  easy: { aiSpeed: 3, playerSpeed: 3, ballFriction: 0.98, aiIntelligence: 1, shootForce: 18 },
-  medium: { aiSpeed: 3.2, playerSpeed: 3.2, ballFriction: 0.985, aiIntelligence: 1, shootForce: 21 },
-  hard: { aiSpeed: 3.2, playerSpeed: 3.2, ballFriction: 0.99, aiIntelligence: 1, shootForce: 22, skeletonSpeed: 1.75 },
+  easy: { aiSpeed: 2.5, playerSpeed: 2.5, ballFriction: 0.98, aiIntelligence: 1, shootForce: 18 },
+  medium: { aiSpeed: 2.75, playerSpeed: 2.75, ballFriction: 0.985, aiIntelligence: 1, shootForce: 21 },
+  hard: { aiSpeed: 3, playerSpeed: 3, ballFriction: 0.99, aiIntelligence: 1, shootForce: 22, skeletonSpeed: 1.75 },
   "30": { duration: 30 },
   "60": { duration: 60 },
   "90": { duration: 90 },
@@ -419,7 +421,7 @@ const MiniSoccer = () => {
   const crowdAudioRef = useRef(null); // ADD THIS
 
   // ADD THIS NEW REF RIGHT AFTER:
-const deathSoundRef = useRef(null);
+  const deathSoundRef = useRef(null);
 
 
   const crowdSpritesRef = useRef([]);
@@ -432,8 +434,28 @@ const deathSoundRef = useRef(null);
       { x: 150, y: 300 + CROWD_HEIGHT, vx: 0, vy: 0, team: 'player', lastDir: { x: 1, y: 0 }, shotTimer: 0, frame: 0, animTimer: 0, alive: true }
     ],
     ai: [
-      { x: 650, y: 200 + CROWD_HEIGHT, vx: 0, vy: 0, team: 'ai', role: 'striker', lastDir: { x: -1, y: 0 }, frame: 0, animTimer: 0 },
-      { x: 650, y: 300 + CROWD_HEIGHT, vx: 0, vy: 0, team: 'ai', role: 'defender', lastDir: { x: -1, y: 0 }, frame: 0, animTimer: 0 }
+      {
+        x: 650,
+        y: 200 + CROWD_HEIGHT,
+        vx: 0,
+        vy: 0,
+        team: 'ai',
+        role: 'attacker',        // ✅ CHANGED: More clear naming
+        lastDir: { x: -1, y: 0 },
+        frame: 0,
+        animTimer: 0
+      },
+      {
+        x: 750,                   // ✅ CHANGED: Start closer to goal
+        y: 300 + CROWD_HEIGHT,
+        vx: 0,
+        vy: 0,
+        team: 'ai',
+        role: 'goalkeeper',       // ✅ CHANGED: Clear goalkeeper role
+        lastDir: { x: -1, y: 0 },
+        frame: 0,
+        animTimer: 0
+      }
     ],
     skeletons: [],
     ball: { x: FIELD_WIDTH / 2, y: (500 / 2) + CROWD_HEIGHT, vx: 0, vy: 0, rotation: 0 },
@@ -475,57 +497,70 @@ const deathSoundRef = useRef(null);
     }
 
     g.ai.forEach((p, i) => {
-      p.x = 650; p.y = (i === 0 ? 200 : 300) + CROWD_HEIGHT;
-      p.vx = 0; p.vy = 0;
+      // ✅ POSITION BASED ON ROLE
+      if (p.role === 'goalkeeper') {
+        // Goalkeeper stays in front of goal
+        p.x = 750;  // Close to goal line (FIELD_WIDTH = 800)
+        p.y = (500 / 2) + CROWD_HEIGHT;  // Centered vertically
+      } else {
+        // Attacker starts at midfield
+        p.x = 550;
+        p.y = (i === 0 ? 200 : 300) + CROWD_HEIGHT;
+      }
+      p.vx = 0;
+      p.vy = 0;
     });
     // g.gameStartTime = Date.now();
     g.keys = {};
     g.deathAnimations = []
   };
 
-  // ADD THIS ENTIRE EFFECT:
-  useEffect(() => {
+useEffect(() => {
     if (gameState !== 'menu' || !pixelCanvasRef.current) return;
 
     const canvas = pixelCanvasRef.current;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { alpha: false }); // Optimization: Disable alpha channel if not needed
 
     // Set canvas size
     canvas.width = canvas.offsetWidth;
     canvas.height = canvas.offsetHeight;
 
-    const pixelSize = 20; // Size of each pixel block
+    const pixelSize = 20; 
     const cols = Math.ceil(canvas.width / pixelSize);
     const rows = Math.ceil(canvas.height / pixelSize);
 
-    // Create pixel grid with random initial brightness
+    // Create pixel grid with RANDOM PHASE (0 to 2PI) instead of brightness
     const pixels = [];
     for (let y = 0; y < rows; y++) {
       for (let x = 0; x < cols; x++) {
         pixels.push({
           x: x * pixelSize,
           y: y * pixelSize,
-          brightness: Math.random() * 100,
-          speed: 0.35
-          // speed: 0.5 + Math.random() * 1.1 // Random animation speed
+          // Initialize directly at a random point in the sine wave cycle
+          phase: Math.random() * Math.PI * 2, 
+          // This determines how fast the color pulses (try 0.05 to 0.1)
+          speed: 0.02
         });
       }
     }
 
     const animate = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      // Optimization: No need to clearRect if we overwrite every pixel every frame
+      // ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       pixels.forEach(pixel => {
-        // Update brightness with sine wave for smooth pulsing
-        pixel.brightness += pixel.speed;
+        // Increment the phase directly
+        pixel.phase += pixel.speed;
 
-        // Calculate color based on brightness (cycling between dark and light blues/purples)
-        const value = Math.sin(pixel.brightness * 0.05) * 0.5 + 0.5; // 0 to 1
+        // Calculate value (0 to 1)
+        // No multiplier needed inside sin() because we control the speed directly above
+        const value = Math.sin(pixel.phase) * 0.5 + 0.5;
 
         // Mix between dark blue and light purple
-        const r = Math.floor(20 + value * 77); // 20 to 97
-        const g = Math.floor(20 + value * 79); // 20 to 99
-        const b = Math.floor(40 + value * 194); // 40 to 234
+        // Math.floor is important for performance
+        const r = Math.floor(20 + value * 77); 
+        const g = Math.floor(20 + value * 79); 
+        const b = Math.floor(40 + value * 194); 
 
         ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
         ctx.fillRect(pixel.x, pixel.y, pixelSize, pixelSize);
@@ -536,7 +571,6 @@ const deathSoundRef = useRef(null);
 
     animate();
 
-    // Cleanup
     return () => {
       if (pixelAnimationRef.current) {
         cancelAnimationFrame(pixelAnimationRef.current);
@@ -545,23 +579,23 @@ const deathSoundRef = useRef(null);
   }, [gameState]);
 
   // ADD THIS ENTIRE NEW EFFECT - Initialize death sound
-useEffect(() => {
-  // Initialize the death sound object
-  if (!deathSoundRef.current) {
-    // You can use a different sound file path here
-    deathSoundRef.current = new Audio('../evil-sound.mp3'); // Change to your sound file
-    deathSoundRef.current.volume = 0.5; // Adjust volume (0.0 to 1.0)
-    deathSoundRef.current.preload = 'auto'; // Preload the audio
-  }
-
-  // Cleanup on unmount
-  return () => {
-    if (deathSoundRef.current) {
-      deathSoundRef.current.pause();
-      deathSoundRef.current.currentTime = 0;
+  useEffect(() => {
+    // Initialize the death sound object
+    if (!deathSoundRef.current) {
+      // You can use a different sound file path here
+      deathSoundRef.current = new Audio('../evil-sound.mp3'); // Change to your sound file
+      deathSoundRef.current.volume = 0.5; // Adjust volume (0.0 to 1.0)
+      deathSoundRef.current.preload = 'auto'; // Preload the audio
     }
-  };
-}, []); // Empty dependency array - only runs once on mount
+
+    // Cleanup on unmount
+    return () => {
+      if (deathSoundRef.current) {
+        deathSoundRef.current.pause();
+        deathSoundRef.current.currentTime = 0;
+      }
+    };
+  }, []); // Empty dependency array - only runs once on mount
 
 
   useEffect(() => {
@@ -667,17 +701,17 @@ useEffect(() => {
   };
 
   // ADD THIS HELPER FUNCTION
-const playDeathSound = () => {
-  if (deathSoundRef.current) {
-    // Reset to beginning in case sound is already playing
-    deathSoundRef.current.currentTime = 0;
-    
-    // Play the sound
-    deathSoundRef.current.play().catch(e => {
-      console.log("Death sound play blocked:", e);
-    });
-  }
-};
+  const playDeathSound = () => {
+    if (deathSoundRef.current) {
+      // Reset to beginning in case sound is already playing
+      deathSoundRef.current.currentTime = 0;
+
+      // Play the sound
+      deathSoundRef.current.play().catch(e => {
+        console.log("Death sound play blocked:", e);
+      });
+    }
+  };
 
   const drawSprite = (ctx, player, isSelected, isPossessor) => {
     let img, isLoaded;
@@ -747,19 +781,34 @@ const playDeathSound = () => {
         const sign = signs.find(s => s.r === r && s.c === c);
         if (sign) {
           ctx.save();
-          const signWidth = 100;
+
+          // 1. Set the font style FIRST so measurement is accurate
+          ctx.font = 'bold 14px monospace';
+
+          // 2. Calculate the dynamic width
+          const padding = 20; // 10px on each side
+          const textMetrics = ctx.measureText(sign.text);
+          const signWidth = textMetrics.width + padding;
+
           const signHeight = 22;
-          const sx = x + fanSize / 2 - signWidth / 2;
+
+          // 3. Recalculate sx so the dynamic box remains centered
+          const sx = x + (fanSize / 2) - (signWidth / 2);
           const sy = y - 10;
+
+          // Draw the Box
           ctx.fillStyle = '#fff';
           ctx.strokeStyle = '#000';
           ctx.lineWidth = 2;
           ctx.fillRect(sx, sy, signWidth, signHeight);
           ctx.strokeRect(sx, sy, signWidth, signHeight);
+
+          // Draw the Text
           ctx.fillStyle = '#000';
-          ctx.font = 'bold 10px monospace';
           ctx.textAlign = 'center';
-          ctx.fillText(sign.text, sx + signWidth / 2, sy + 15);
+          // Center text exactly in the middle of the dynamic signWidth
+          ctx.fillText(sign.text, sx + (signWidth / 2), sy + 15);
+
           ctx.restore();
         }
       }
@@ -927,24 +976,99 @@ const playDeathSound = () => {
         });
 
         game.ai.forEach((ai) => {
-          let tx = ball.x, ty = ball.y;
-          if (ai.role === 'striker') { tx = ball.x + ball.vx * 2; ty = ball.y + ball.vy * 2; }
-          else { const defenseX = Math.max(600, ball.x + 100); tx = defenseX; ty = ball.y > (500 / 2) + CROWD_HEIGHT ? ball.y - 80 : ball.y + 80; }
-          const dx = tx - ai.x, dy = ty - ai.y, dist = Math.sqrt(dx * dx + dy * dy);
+          let tx, ty;  // Target position
+
+          // ✅ GOALKEEPER AI (MEDIUM & HARD ONLY)
+          if (ai.role === 'goalkeeper' && (difficulty === 'medium' || difficulty === 'hard')) {
+            // Goalkeeper behavior: Stay near goal, track ball vertically
+            const goalX = difficulty === 'hard' ? (FIELD_WIDTH - 50) : (FIELD_WIDTH - 70);  // Stay 40px from goal line
+            const goalCenterY = (500 / 2) + CROWD_HEIGHT;
+
+            // Track ball's Y position, but stay in goal area
+            if (ball.x > FIELD_WIDTH / 2) {
+              // Ball is on AI's side - track it closely
+              tx = goalX;
+              ty = ball.y;
+
+              // Clamp to goal area (don't leave the goal mouth)
+              const goalTop = (500 / 2) - (GOAL_HEIGHT / 2) + CROWD_HEIGHT;
+              const goalBottom = goalTop + GOAL_HEIGHT;
+              ty = Math.max(goalTop + 20, Math.min(goalBottom - 20, ty));
+            } else {
+              // Ball is far away - stay centered in goal
+              tx = goalX;
+              ty = goalCenterY;
+            }
+          }
+          // ✅ ATTACKER AI
+          else if (ai.role === 'attacker') {
+            if (difficulty === 'easy') {
+              // Easy: Just chase ball directly (existing behavior)
+              tx = ball.x;
+              ty = ball.y;
+            } else if (difficulty === 'medium') {
+              // Medium: Predict ball movement slightly
+              tx = ball.x + ball.vx * 1.5;
+              ty = ball.y + ball.vy * 1.5;
+            } else {
+              // Hard: Smart positioning - predict and aim for player's goal
+              tx = ball.x + ball.vx * 2;
+              ty = ball.y + ball.vy * 2;
+
+              // If ball is far, position between ball and player's goal
+              if (ball.x < FIELD_WIDTH / 3) {
+                const angleToGoal = Math.atan2(
+                  ((500 / 2) + CROWD_HEIGHT) - ai.y,
+                  50 - ai.x  // Player's goal X
+                );
+                tx = ball.x + Math.cos(angleToGoal) * 100;
+                ty = ball.y + Math.sin(angleToGoal) * 100;
+              }
+            }
+          }
+          // ✅ FALLBACK FOR EASY MODE GOALKEEPER (acts like second attacker)
+          else {
+            // Easy mode: Both AI chase ball (no goalkeeper)
+            tx = ball.x;
+            ty = ball.y;
+          }
+
+          // ✅ MOVEMENT LOGIC (existing, but improved)
+          const dx = tx - ai.x;
+          const dy = ty - ai.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+
           if (dist > 5) {
-            ai.vx = (dx / dist) * settings.aiSpeed; ai.vy = (dy / dist) * settings.aiSpeed;
+            // Different speeds based on role and difficulty
+            let moveSpeed = settings.aiSpeed;
+
+            if (ai.role === 'goalkeeper') {
+              // Goalkeeper is faster vertically, slower horizontally
+              moveSpeed = difficulty === 'hard' ? 1.5 : settings.aiSpeed;
+              moveSpeed = difficulty === 'medium' ? 1 : settings.aiSpeed;
+            }
+
+            ai.vx = (dx / dist) * moveSpeed;
+            ai.vy = (dy / dist) * moveSpeed;
+
             const mag = Math.sqrt(ai.vx * ai.vx + ai.vy * ai.vy);
             if (mag > 0) ai.lastDir = { x: ai.vx / mag, y: ai.vy / mag };
-            ai.animTimer++; if (ai.animTimer % 4 === 0) ai.frame++;
+            ai.animTimer++;
+            if (ai.animTimer % 4 === 0) ai.frame++;
           }
-          ai.vx *= 0.88; ai.vy *= 0.88;
+
+          ai.vx *= 0.88;
+          ai.vy *= 0.88;
+
+          // ✅ BALL INTERACTION (existing code)
           const ballDist = Math.sqrt((ball.x - ai.x) ** 2 + (ball.y - ai.y) ** 2);
           if (ballDist < PLAYER_SIZE / 2 + BALL_RADIUS) {
             game.possessor = null;
-            game.stuckTimer = 0; // FIX: Reset the timer when AI touches the ball!
+            game.stuckTimer = 0;
             const angle = Math.atan2(ball.y - ai.y, ball.x - ai.x);
             const kickPower = 8 + (settings.aiIntelligence * 6);
-            ball.vx = Math.cos(angle) * kickPower; ball.vy = Math.sin(angle) * kickPower;
+            ball.vx = Math.cos(angle) * kickPower;
+            ball.vy = Math.sin(angle) * kickPower;
           }
         });
 
@@ -987,7 +1111,9 @@ const playDeathSound = () => {
 
             // Check collision with player
             if (dist < PLAYER_SIZE / 2 + PLAYER_SIZE / 2) {
-              // Create death animation for both
+              if (skeleton.spawning) {
+                return; // Don't check collisions while materializing
+              }
               // Create death animation for both
               game.deathAnimations.push({
                 skeletonX: skeleton.x,
@@ -1002,8 +1128,8 @@ const playDeathSound = () => {
                 duration: 30 // frames
               });
 
-                // ADD THIS LINE - Play death sound
-                playDeathSound();
+              // ADD THIS LINE - Play death sound
+              playDeathSound();
 
               // NEW: Reset possession so the ball drops if the player dies
               if (game.possessor === game.players.indexOf(nearestPlayer)) {
@@ -1056,34 +1182,63 @@ const playDeathSound = () => {
           p.x += p.vx; p.y += p.vy;
           p.x = Math.max(PLAYER_SIZE / 2, Math.min(FIELD_WIDTH - PLAYER_SIZE / 2, p.x));
           p.y = Math.max(CROWD_HEIGHT + PLAYER_SIZE / 2, Math.min(FIELD_HEIGHT - PLAYER_SIZE / 2, p.y));
+
+          // ✅ GOALKEEPER CONSTRAINTS
+          if (p.team === 'ai' && p.role === 'goalkeeper' && (difficulty === 'medium' || difficulty === 'hard')) {
+            // Goalkeeper can't leave defensive third
+            const minX = (FIELD_WIDTH * 2 / 3);  // Stay in right third
+            const maxX = FIELD_WIDTH - PLAYER_SIZE / 2;
+            p.x = Math.max(minX, Math.min(maxX, p.x));
+
+            // Restrict to goal area vertically
+            const goalTop = (500 / 2) - (GOAL_HEIGHT / 2) + CROWD_HEIGHT;
+            const goalBottom = goalTop + GOAL_HEIGHT;
+            p.y = Math.max(goalTop, Math.min(goalBottom, p.y));
+          }
+          // ✅ REGULAR PLAYER/ATTACKER CONSTRAINTS
+          else {
+            p.x = Math.max(PLAYER_SIZE / 2, Math.min(FIELD_WIDTH - PLAYER_SIZE / 2, p.x));
+            p.y = Math.max(CROWD_HEIGHT + PLAYER_SIZE / 2, Math.min(FIELD_HEIGHT - PLAYER_SIZE / 2, p.y));
+          }
         });
 
         if (game.possessor !== null) {
           const p = game.players[game.possessor];
-          const playerspeed = settings.playerSpeed;
-          ball.rotation += playerspeed * 0.15;
-          // 1. Update Ball Position relative to Player
+
+          // ✅ UPDATE: Ball follows player
           ball.x = p.x + p.lastDir.x * (PLAYER_SIZE / 2 + 5);
           ball.y = p.y + p.lastDir.y * (PLAYER_SIZE / 2 + 5);
           ball.vx = p.vx;
           ball.vy = p.vy;
-          const speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
 
-          // Only rotate if the player (and thus the ball) is actually moving
+          // ✅ ROTATE based on player speed
+          const speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
           if (speed > 0.1) {
-            // The 0.15 multiplier determines how fast it spins relative to movement speed
             ball.rotation += speed * 0.15;
           }
         } else {
+          // ✅ CHECK: Can any player pick up the ball?
           game.players.forEach((p, idx) => {
-            if (!p.alive) return; // ADD THIS
+            if (!p.alive) return;
             if (p.shotTimer === 0) {
               const dist = Math.sqrt((ball.x - p.x) ** 2 + (ball.y - p.y) ** 2);
               if (dist < PLAYER_SIZE / 2 + BALL_RADIUS + 2) game.possessor = idx;
             }
           });
-          ball.x += ball.vx; ball.y += ball.vy;
-          ball.vx *= settings.ballFriction; ball.vy *= settings.ballFriction;
+
+          // ✅ UPDATE: Ball moves freely
+          ball.x += ball.vx;
+          ball.y += ball.vy;
+          ball.vx *= settings.ballFriction;
+          ball.vy *= settings.ballFriction;
+
+          // ✅ ADD: ROTATE based on ball velocity (THIS IS THE KEY FIX!)
+          const ballSpeed = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
+          if (ballSpeed > 0.1) {
+            // Rotation slows down as ball slows down
+            const rotationSpeed = Math.min(ballSpeed * 0.15, 0.5);
+            ball.rotation += rotationSpeed;
+          }
         }
 
         const goalBottom = goalTop + GOAL_HEIGHT;
@@ -1433,9 +1588,9 @@ const playDeathSound = () => {
     <div style={styles.container}>
       <div style={styles.scoreHeader}>
         <div style={styles.scoreBox}>
+          <span style={{ ...styles.modeBadge, color: 'white', fontWeight: 'bold', fontSize: 16 }}>difficulty - {difficulty}</span>
           <div style={styles.scoreInner}><span style={styles.scoreText}>HOME - {playerScore} : AWAY - {aiScore}</span></div>
-          <span style={{ ...styles.modeBadge, color: 'white', fontWeight: 'bold' }}>difficulty {difficulty}</span>
-          <span style={{ ...styles.modeBadge, color: 'white', fontWeight: 'bold', fontSize: 18 }}>{timeRemaining.toFixed(2)} sec Remaining</span>
+          <span style={{ ...styles.modeBadge, color: 'white', fontWeight: 'bold', fontSize: 16 }}>{timeRemaining.toFixed(2)} sec Remaining</span>
         </div>
       </div>
       <canvas ref={canvasRef} width={FIELD_WIDTH} height={FIELD_HEIGHT} style={styles.canvas} />
