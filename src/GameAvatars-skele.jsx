@@ -7,33 +7,32 @@ const styles = {
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    // minHeight: '100vh',
     backgroundColor: '#000',
     fontFamily: 'system-ui, -apple-system, sans-serif',
     padding: '32px 16px',
+    height: '100%'
   },
   menuContainer: {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'flex-start',
-    // minHeight: '110vh',
-    height: '100%',
+    minHeight: '100vh', 
     backgroundColor: '#020617',
     color: '#fff',
     padding: '24px',
-    overflow: 'scroll',
     position: 'relative',
+    boxSizing: 'border-box'
   },
   pixelCanvas: {
     position: 'absolute',
     top: 0,
     left: 0,
+    bottom:0,
     width: '100%',
     height: '100%',
     zIndex: 0,
-    opacity: 0.4,
-    zIndex: 0
+    opacity: 0.4
   },
   menuContent: {
     position: 'relative',
@@ -44,6 +43,7 @@ const styles = {
     width: '55%',
     backgroundColor: '#2e3144ff',
     border: '2px solid grey',
+    height: 'auto',
     borderRadius: '5px',
     padding: '25px'
   },
@@ -83,11 +83,31 @@ const styles = {
     width: '165px',
     backgroundColor: '#0f172a',
     borderRadius: '50%',
-    border: '4px solid #334155',
-    overflow: 'hidden',
+    // border: '4px solid #334155',
     marginBottom: '16px',
     position: 'relative',
-    margin: '0 auto',
+
+    margin: '0 auto 16px auto', // Combined margin-bottom and margin-auto
+  overflow: 'hidden',
+
+// 1. THE BRIGHT CORE
+  // Pure white border for that "high-voltage" look
+  border: '2px solid #ffffffb6', 
+
+  // 2. THE WHITE-DOMINANT GLOW
+  // We stack multiple white layers before hitting the purple tint
+  boxShadow: `
+    0 0 5px #ffffff80,      /* Crisp white core glow */
+    0 0 5px #ffffff65,      /* Intense white secondary glow */
+    0 0 45px #d393f86c,      /* Soft purple aura (outer) */
+    0 0 60px #955fb979,      /* Deep violet fade */
+    inset 0 0 30px #ffffff5b, /* Light bleeding INTO the circle */
+    inset 0 0 50px rgba(216, 155, 252, 0.4) /* Subtle purple tint on avatar */
+  `,
+
+  // 3. 3D "POP"
+  // Gives it a slight lift from the background
+  filter: 'drop-shadow(0 0 38px rgba(255, 255, 255, 0.2))',
   },
   avatarLoading: {
     position: 'absolute',
@@ -486,7 +506,7 @@ const deathSoundRef = useRef(null);
           x: x * pixelSize,
           y: y * pixelSize,
           brightness: Math.random() * 100,
-          speed: 0.4
+          speed: 0.35
           // speed: 0.5 + Math.random() * 1.1 // Random animation speed
         });
       }
@@ -529,7 +549,7 @@ useEffect(() => {
   // Initialize the death sound object
   if (!deathSoundRef.current) {
     // You can use a different sound file path here
-    deathSoundRef.current = new Audio('../evil-sound.wav'); // Change to your sound file
+    deathSoundRef.current = new Audio('../evil-sound.mp3'); // Change to your sound file
     deathSoundRef.current.volume = 0.5; // Adjust volume (0.0 to 1.0)
     deathSoundRef.current.preload = 'auto'; // Preload the audio
   }
@@ -615,7 +635,7 @@ useEffect(() => {
   useEffect(() => {
     // Initialize the audio object if it doesn't exist
     if (!crowdAudioRef.current) {
-      crowdAudioRef.current = new Audio('../cheering-sounds.wav');
+      crowdAudioRef.current = new Audio('../cheering-sounds.mp3');
       crowdAudioRef.current.loop = true;
       crowdAudioRef.current.volume = 0.3; // Adjust volume as needed
     }
@@ -1339,7 +1359,8 @@ const playDeathSound = () => {
       <div style={styles.menuContainer}>
         <canvas ref={pixelCanvasRef} style={styles.pixelCanvas} />
         <div style={styles.menuContent}>
-          <h1 style={styles.title}>Meebits Mini Soccer</h1>
+          <h1 className='neon-title'>Meebits Mini Soccer</h1>
+          {/* <h1 style={styles.title}>Meebits Mini Soccer</h1> */}
           <div style={{ ...styles.avatarGrid, gridTemplateColumns: window.innerWidth >= 768 ? 'repeat(2, 1fr)' : '1fr' }}>
             <div style={styles.avatarCard}>
               <MeebitAvatar id={meebitNumber} loaded={spriteLoaded} />
