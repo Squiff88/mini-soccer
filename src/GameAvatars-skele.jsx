@@ -415,6 +415,10 @@ const MiniSoccer = () => {
   const [skeleton1Loaded, setSkeleton1Loaded] = useState(false);
   const [skeleton2Loaded, setSkeleton2Loaded] = useState(false);
 
+  // ✅ ADD THESE TWO NEW STATES:
+const [crowdAudioLoaded, setCrowdAudioLoaded] = useState(false);
+const [deathSoundLoaded, setDeathSoundLoaded] = useState(false);
+
   const spriteImageRef = useRef(null);
   const aiSpriteImageRef = useRef(null);
 
@@ -426,6 +430,52 @@ const MiniSoccer = () => {
 
   const crowdSpritesRef = useRef([]);
   const [crowdLoaded, setCrowdLoaded] = useState(false);
+
+  // ✅ ADD THIS ENTIRE HELPER FUNCTION
+const loadAudioAsset = (url, audioRef, setLoaded, config = {}) => {
+  return new Promise((resolve, reject) => {
+    const audio = new Audio();
+    
+    // Configure audio properties BEFORE loading
+    if (config.loop) audio.loop = config.loop;
+    if (config.volume !== undefined) audio.volume = config.volume;
+    
+    // Track when audio is ready to play
+    audio.addEventListener('canplaythrough', () => {
+      audioRef.current = audio;
+      setLoaded(true);
+      console.log(`✅ Audio loaded: ${url}`); // Debug log
+      resolve();
+    }, { once: true });
+    
+    // Handle errors gracefully
+    audio.addEventListener('error', (e) => {
+      console.error(`❌ Audio load failed: ${url}`, e);
+      setLoaded(false);
+      resolve(); // Still resolve to not block other assets
+    });
+    
+    // Start loading
+    audio.preload = 'auto';
+    audio.src = url;
+    audio.load(); // Force immediate load
+  });
+};
+
+// ✅ ADD: Cleanup audio on unmount
+useEffect(() => {
+  return () => {
+    // Clean up all audio references
+    if (crowdAudioRef.current) {
+      crowdAudioRef.current.pause();
+      crowdAudioRef.current.src = ''; // Release memory
+    }
+    if (deathSoundRef.current) {
+      deathSoundRef.current.pause();
+      deathSoundRef.current.src = ''; // Release memory
+    }
+  };
+}, []);
 
 
   const gameRef = useRef({
@@ -578,57 +628,114 @@ useEffect(() => {
     };
   }, [gameState]);
 
-  // ADD THIS ENTIRE NEW EFFECT - Initialize death sound
-  useEffect(() => {
-    // Initialize the death sound object
-    if (!deathSoundRef.current) {
-      // You can use a different sound file path here
-      deathSoundRef.current = new Audio('../evil-sound.mp3'); // Change to your sound file
-      deathSoundRef.current.volume = 0.5; // Adjust volume (0.0 to 1.0)
-      deathSoundRef.current.preload = 'auto'; // Preload the audio
-    }
+  // // ADD THIS ENTIRE NEW EFFECT - Initialize death sound
+  // useEffect(() => {
+  //   // Initialize the death sound object
+  //   if (!deathSoundRef.current) {
+  //     // You can use a different sound file path here
+  //     deathSoundRef.current = new Audio('../evil-sound.mp3'); // Change to your sound file
+  //     deathSoundRef.current.volume = 0.5; // Adjust volume (0.0 to 1.0)
+  //     deathSoundRef.current.preload = 'auto'; // Preload the audio
+  //   }
 
-    // Cleanup on unmount
-    return () => {
-      if (deathSoundRef.current) {
-        deathSoundRef.current.pause();
-        deathSoundRef.current.currentTime = 0;
-      }
-    };
-  }, []); // Empty dependency array - only runs once on mount
+  //   // Cleanup on unmount
+  //   return () => {
+  //     if (deathSoundRef.current) {
+  //       deathSoundRef.current.pause();
+  //       deathSoundRef.current.currentTime = 0;
+  //     }
+  //   };
+  // }, []); // Empty dependency array - only runs once on mount
 
 
-  useEffect(() => {
-    const loadCrowd = async () => {
-      const sprites = [];
-      const randomIds = Array.from({ length: CROWD_COUNT }, () => Math.floor(Math.random() * 20000));
+  // useEffect(() => {
+  //   const loadCrowd = async () => {
+  //     const sprites = [];
+  //     const randomIds = Array.from({ length: CROWD_COUNT }, () => Math.floor(Math.random() * 20000));
 
-      const promises = randomIds.map(id => {
-        return new Promise((resolve) => {
-          const img = new Image();
-          img.crossOrigin = "anonymous";
-          img.src = `https://corsproxy.io/?${encodeURIComponent(`https://files.meebits.app/sprites/${id}.png`)}`;
-          img.onload = () => {
-            sprites.push({ img, offset: Math.random() * Math.PI * 2 });
-            resolve();
-          };
-          img.onerror = () => {
-            setCrowdLoaded(false);
-            resolve()
-          };
-        });
-      });
+  //     const promises = randomIds.map(id => {
+  //       return new Promise((resolve) => {
+  //         const img = new Image();
+  //         img.crossOrigin = "anonymous";
+  //         img.src = `https://corsproxy.io/?${encodeURIComponent(`https://files.meebits.app/sprites/${id}.png`)}`;
+  //         img.onload = () => {
+  //           sprites.push({ img, offset: Math.random() * Math.PI * 2 });
+  //           resolve();
+  //         };
+  //         img.onerror = () => {
+  //           setCrowdLoaded(false);
+  //           resolve()
+  //         };
+  //       });
+  //     });
 
-      setIntroAnimation('walkInAndPose 0.8s ease-out forwards')
+  //     setIntroAnimation('walkInAndPose 0.8s ease-out forwards')
 
-      await Promise.all(promises);
-      crowdSpritesRef.current = sprites;
-      setCrowdLoaded(true);
-    };
-    loadCrowd();
-  }, []);
+  //     await Promise.all(promises);
+  //     crowdSpritesRef.current = sprites;
+  //     setCrowdLoaded(true);
+  //   };
+  //   loadCrowd();
+  // }, []);
 
   // Load skeleton sprites
+  
+  useEffect(() => {
+  const loadAllAssets = async () => {
+    // ✅ LOAD CROWD SPRITES (existing code)
+    const sprites = [];
+    const randomIds = Array.from({ length: CROWD_COUNT }, () => 
+      Math.floor(Math.random() * 20000)
+    );
+
+    const spritePromises = randomIds.map(id => {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.src = `https://corsproxy.io/?${encodeURIComponent(
+          `https://files.meebits.app/sprites/${id}.png`
+        )}`;
+        img.onload = () => {
+          sprites.push({ img, offset: Math.random() * Math.PI * 2 });
+          resolve();
+        };
+        img.onerror = () => {
+          setCrowdLoaded(false);
+          resolve();
+        };
+      });
+    });
+
+    // ✅ LOAD AUDIO FILES IN PARALLEL
+    const audioPromises = [
+      loadAudioAsset(
+        '../cheering-sounds.mp3', 
+        crowdAudioRef, 
+        setCrowdAudioLoaded,
+        { loop: true, volume: 0.3 }  // Config for crowd audio
+      ),
+      loadAudioAsset(
+        '../evil-sound.mp3', 
+        deathSoundRef, 
+        setDeathSoundLoaded,
+        { volume: 0.5 }  // Config for death sound
+      )
+    ];
+
+    setIntroAnimation('walkInAndPose 0.8s ease-out forwards');
+
+    // ✅ WAIT FOR EVERYTHING TO LOAD (sprites + audio)
+    await Promise.all([...spritePromises, ...audioPromises]);
+    
+    crowdSpritesRef.current = sprites;
+    setCrowdLoaded(true);
+    
+    console.log('🎉 All assets loaded!'); // Debug log
+  };
+  
+  loadAllAssets();
+}, []);
+  
   useEffect(() => {
     const loadSkeletonSprite = async (id, ref, setLoaded) => {
       setLoaded(false);
@@ -666,30 +773,57 @@ useEffect(() => {
   useEffect(() => { loadSpriteAsset(aiMeebitNumber, false); }, [aiMeebitNumber]);
 
 
-  useEffect(() => {
-    // Initialize the audio object if it doesn't exist
-    if (!crowdAudioRef.current) {
-      crowdAudioRef.current = new Audio('../cheering-sounds.mp3');
-      crowdAudioRef.current.loop = true;
-      crowdAudioRef.current.volume = 0.3; // Adjust volume as needed
-    }
+  // useEffect(() => {
+  //   // Initialize the audio object if it doesn't exist
+  //   if (!crowdAudioRef.current) {
+  //     crowdAudioRef.current = new Audio('../cheering-sounds.mp3');
+  //     crowdAudioRef.current.loop = true;
+  //     crowdAudioRef.current.volume = 0.3; // Adjust volume as needed
+  //   }
 
-    if (gameState === 'playing') {
-      // Play when game starts
-      crowdAudioRef.current.play().catch(e => console.log("Audio play blocked by browser:", e));
-    } else {
-      // Pause and reset when in Menu or Game Over
+  //   if (gameState === 'playing') {
+  //     // Play when game starts
+  //     crowdAudioRef.current.play().catch(e => console.log("Audio play blocked by browser:", e));
+  //   } else {
+  //     // Pause and reset when in Menu or Game Over
+  //     crowdAudioRef.current.pause();
+  //     crowdAudioRef.current.currentTime = 0;
+  //   }
+
+  //   // Cleanup on unmount
+  //   return () => {
+  //     if (crowdAudioRef.current) {
+  //       crowdAudioRef.current.pause();
+  //     }
+  //   };
+  // }, [gameState]);
+
+useEffect(() => {
+  // ✅ Audio is already loaded, just control playback
+  if (gameState === 'playing') {
+    if (crowdAudioRef.current && crowdAudioLoaded) {
+      crowdAudioRef.current.play().catch(e => 
+        console.log("Audio play blocked by browser:", e)
+      );
+    }
+  } else {
+    if (crowdAudioRef.current) {
       crowdAudioRef.current.pause();
       crowdAudioRef.current.currentTime = 0;
     }
+  }
 
-    // Cleanup on unmount
-    return () => {
-      if (crowdAudioRef.current) {
-        crowdAudioRef.current.pause();
-      }
-    };
-  }, [gameState]);
+  // Cleanup on unmount
+  return () => {
+    if (crowdAudioRef.current) {
+      crowdAudioRef.current.pause();
+    }
+    if (deathSoundRef.current) {
+      deathSoundRef.current.pause();
+    }
+  };
+}, [gameState, crowdAudioLoaded]); // ✅ ADD crowdAudioLoaded to dependencies
+
 
   const getDirectionRow = (dirX, dirY) => {
     const angle = Math.atan2(dirY, dirX);
@@ -1507,7 +1641,33 @@ useEffect(() => {
 
 
   if (gameState === 'menu') {
-    const isAssetsReady = spriteLoaded && aiSpriteLoaded && crowdLoaded;
+ const isAssetsReady = spriteLoaded && 
+                        aiSpriteLoaded && 
+                        crowdLoaded && 
+                        crowdAudioLoaded && 
+                        deathSoundLoaded;
+
+
+                        // ✅ ADD: Calculate loading progress
+const loadedAssets = [
+  spriteLoaded,
+  aiSpriteLoaded,
+  crowdLoaded,
+  crowdAudioLoaded,
+  deathSoundLoaded
+].filter(Boolean).length;
+
+const totalAssets = 5;
+const loadingProgress = Math.round((loadedAssets / totalAssets) * 100);
+
+// ✅ ADD: Detailed loading status (for debugging)
+const loadingStatus = {
+  'Player Sprite': spriteLoaded,
+  'AI Sprite': aiSpriteLoaded,
+  'Crowd': crowdLoaded,
+  'Crowd Audio': crowdAudioLoaded,
+  'Death Sound': deathSoundLoaded
+};
 
     console.log(isAssetsReady, 'isAssetsReady ??????')
     return (
@@ -1557,7 +1717,7 @@ useEffect(() => {
           <p style={{ ...styles.scoreText, fontSize: "18px", textAlign: 'center' }}>Move: "WASD" | Swap: "Space" | Shoot: "Enter"</p>
 
 
-          <button
+          {/* <button
             onClick={startMatch}
             disabled={!isAssetsReady}
             style={!isAssetsReady ?
@@ -1566,7 +1726,21 @@ useEffect(() => {
             }
           >
             {isAssetsReady ? "KICK OFF" : "LOADING ASSETS..."}
-          </button>
+          </button> */}
+
+          <button
+  onClick={startMatch}
+  disabled={!isAssetsReady}
+  style={!isAssetsReady ?
+    { ...styles.kickoffButton, ...styles.kickoffButtonDisabled } :
+    { ...styles.kickoffButton, ...styles.kickoffButtonEnabled }
+  }
+>
+  {isAssetsReady 
+    ? "KICK OFF" 
+    : `LOADING ${loadingProgress}%...`  // ✅ SHOW PROGRESS
+  }
+</button>
         </div>
       </div>
     );
