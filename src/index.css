@@ -1,6 +1,8 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* @import url('https://fonts.googleapis.com/css2?family=Tilt+Neon&display=swap'); */
+
+/* @import url('https://fonts.googleapis.com/css2?family=Comfortaa:wght@700&display=swap'); */
+
+@import url('https://fonts.googleapis.com/css2?family=Varela+Round&display=swap');
 
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
@@ -31,7 +33,8 @@ body {
   display: flex;
   place-items: center;
   min-width: 320px;
-  min-height: 100vh;
+  /* min-height: 135vh; */
+  height: 100%;
 }
 
 h1 {
@@ -78,4 +81,67 @@ html, body, #root {
   margin: 0;
   padding: 0;
   background-color: black;
+}
+
+@keyframes turnAround {
+  0% { 
+    background-position-y: 40%;
+
+  }
+  100% { 
+    background-position-y: 101%; 
+  }
+}
+
+.neon-title {
+  font-family: 'Varela Round', sans-serif;
+  font-size: 4rem;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 4px;
+  margin: 40px 0;
+  margin-bottom: 100px;
+  
+  /* Core tube color: Near-white lavender */
+  color: #fcfaff;
+
+/* 3D TUBE EFFECT */
+  /* This creates a vertical gradient to simulate light hitting a cylinder */
+  background: linear-gradient(
+    to bottom,
+    #fff 0%,         /* Top shine */
+    #fcfaff 40%,      /* Core color */
+    #d1a3ff 50%,      /* Slight shadow in the middle of the tube */
+    #fcfaff 60%,      /* Core color */
+    #fff 100%        /* Bottom shine */
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+
+  /* This adds the "Glass Outline" to define the tube shape */
+  -webkit-text-stroke: 1.5px rgba(255, 255, 255, 0.4);
+
+  /* LAYERED SHADOWS FOR 3D DEPTH */
+  text-shadow:
+    /* 1. Internal Tube Glow */
+    0 0 5px rgba(176, 38, 255, 0.8),
+    0 0 10px rgba(176, 38, 255, 0.5),
+    /* 2. Soft Outer Atmosphere Glow */
+    0 0 20px #b026ff,
+    0 0 40px #b026ff,
+    /* 3. The "Wall" Reflection (Offset slightly to look 3D) */
+    4px 4px 15px rgba(0, 0, 0, 0.8), 
+    0 0 100px #7a00cc;
+
+  /* The Initial Flicker */
+  animation: neonInitialFlicker 4s ease-in-out infinite;
+
+}
+@keyframes neonInitialFlicker {
+  /* 0%, 10%, 20% { opacity: 0; filter: brightness(0); } */
+  0%, 75% { opacity: 1; filter: brightness(1.5); }
+  78% { opacity: 0; filter: brightness(0.5); }
+  81% { opacity: 1; filter: brightness(1); }
+  84% { opacity: 0; filter: brightness(0); }
+  86%, 100% { opacity: 1; filter: brightness(1.5); }
 }
