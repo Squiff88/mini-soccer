@@ -1133,6 +1133,8 @@ const drawSprite = (ctx, player, isSelected, isPossessor) => {
     animationRef.current = requestAnimationFrame(gameLoop);
     return;
   }
+  const dt = deltaTime / (1000 / 60)
+
       const ball = game.ball;
       if (!game.gameStartTime) {
         game.gameStartTime = Date.now();
@@ -1249,7 +1251,7 @@ const drawSprite = (ctx, player, isSelected, isPossessor) => {
           if (!p.alive) return; // ADD THIS LINE
           if (p.shotTimer > 0) p.shotTimer--;
           if (idx === game.selectedPlayer) {
-            const speed = settings.playerSpeed;
+            const speed = settings.playerSpeed * dt; // ✅ ADD dt
             p.vx = 0; p.vy = 0;
             if (game.keys['arrowleft'] || game.keys['a']) p.vx = -speed;
             if (game.keys['arrowright'] || game.keys['d']) p.vx = speed;
@@ -1338,8 +1340,8 @@ const drawSprite = (ctx, player, isSelected, isPossessor) => {
               moveSpeed = difficulty === 'medium' ? 1 : settings.aiSpeed;
             }
 
-            ai.vx = (dx / dist) * moveSpeed;
-            ai.vy = (dy / dist) * moveSpeed;
+ai.vx = (dx / dist) * moveSpeed * dt; // ✅ ADD dt
+ai.vy = (dy / dist) * moveSpeed * dt; // ✅ ADD dt;
 
             const mag = Math.sqrt(ai.vx * ai.vx + ai.vy * ai.vy);
             if (mag > 0) ai.lastDir = { x: ai.vx / mag, y: ai.vy / mag };
@@ -1356,7 +1358,7 @@ const drawSprite = (ctx, player, isSelected, isPossessor) => {
             game.possessor = null;
             game.stuckTimer = 0;
             const angle = Math.atan2(ball.y - ai.y, ball.x - ai.x);
-            const kickPower = 8 + (settings.aiIntelligence * 6);
+const kickPower = (8 + (settings.aiIntelligence * 6)) * dt; // ✅ ADD dt
             ball.vx = Math.cos(angle) * kickPower;
             ball.vy = Math.sin(angle) * kickPower;
           }
@@ -1387,7 +1389,7 @@ const drawSprite = (ctx, player, isSelected, isPossessor) => {
             const dist = Math.sqrt(dx * dx + dy * dy);
 
             if (dist > 5) {
-              const skeletonSpeed = settings.skeletonSpeed || 2.5;
+const skeletonSpeed = (settings.skeletonSpeed || 2.5) * dt; // ✅ ADD dt
               skeleton.vx = (dx / dist) * skeletonSpeed;
               skeleton.vy = (dy / dist) * skeletonSpeed;
               const mag = Math.sqrt(skeleton.vx * skeleton.vx + skeleton.vy * skeleton.vy);
@@ -1497,7 +1499,7 @@ for (let i = 0; i < allEntities.length; i++) {
           // ✅ ROTATE based on player speed
           const speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
           if (speed > 0.1) {
-            ball.rotation += speed * 0.15;
+  ball.rotation += speed * 0.15 * dt; // ✅ ADD d
           }
         } else {
           // ✅ CHECK: Can any player pick up the ball?
@@ -1523,7 +1525,7 @@ for (let i = 0; i < allEntities.length; i++) {
           const ballSpeed = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
           if (ballSpeed > 0.1) {
             // Rotation slows down as ball slows down
-            const rotationSpeed = Math.min(ballSpeed * 0.15, 0.5);
+  const rotationSpeed = Math.min(ballSpeed * 0.15, 0.5) * dt; // ✅ ADD dt
             ball.rotation += rotationSpeed;
           }
         }
