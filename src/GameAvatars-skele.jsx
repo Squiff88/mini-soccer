@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { RotateCcw, Trophy } from 'lucide-react';
+import { GameEngine } from './gameEngine';
 
 const styles = {
   container: {
@@ -326,19 +327,20 @@ const styles = {
 
 };
 
-const skeleAvatars = ['16102', '11355', '15710', '9700', '16633', '3595']
+const skeleAvatars = ['16102', '11355', '15710', '9700', '16633', '3595'];
 
 
 
 const diffConfig = {
   easy: { aiSpeed: 2.5, playerSpeed: 2.5, ballFriction: 0.98, aiIntelligence: 1, shootForce: 18 },
   medium: { aiSpeed: 2.75, playerSpeed: 2.75, ballFriction: 0.985, aiIntelligence: 1, shootForce: 21 },
-  hard: { aiSpeed: 3, playerSpeed: 3, ballFriction: 0.99, aiIntelligence: 1, shootForce: 22, skeletonSpeed: 1.75 },
+  hard: { aiSpeed: 3, playerSpeed: 3, ballFriction: 0.99, aiIntelligence: 1, shootForce: 22, skeletonSpeed: 1.4 },
   "30": { duration: 30 },
   "60": { duration: 60 },
   "90": { duration: 90 },
 
 };
+
 
 const signs = [
   { r: 0, c: 2, text: "Meebits are fun!" },
@@ -348,20 +350,11 @@ const signs = [
   { r: 2, c: 1, text: "Meebin!" }
 ];
 
-const CROWD_HEIGHT = 120;
+const { CROWD_HEIGHT, FIELD_WIDTH, FIELD_HEIGHT, GOAL_WIDTH, GOAL_HEIGHT, 
+        SPRITE_WIDTH, SPRITE_HEIGHT, SPRITE_SCALE, PLAYER_SIZE, BALL_RADIUS } = GameEngine;
 const CROWD_ROWS = 3;
 const FANS_PER_ROW = 14;
 const CROWD_COUNT = CROWD_ROWS * FANS_PER_ROW;
-const FIELD_WIDTH = 800;
-const FIELD_HEIGHT = 500 + CROWD_HEIGHT;
-const GOAL_WIDTH = 25;
-const GOAL_HEIGHT = 160;
-const SPRITE_WIDTH = 85;
-const SPRITE_HEIGHT = 85;
-const SPRITE_SCALE = 0.6;
-const PLAYER_SIZE = SPRITE_WIDTH * SPRITE_SCALE;
-const BALL_RADIUS = 14;
-
 
 const MeebitAvatar = React.memo(({ id, loaded }) => {
   // Debug: If this shows in console, the component is trying to render
@@ -410,7 +403,7 @@ const MiniSoccer = () => {
   const [aiSpriteLoaded, setAiSpriteLoaded] = useState(false);
   const [introAnimation, setIntroAnimation] = useState(null);
   const [loadingError, setLoadingError] = useState(false);
-
+const [isStartingMatch, setIsStartingMatch] = useState(false);
 
   const skeleton1ImageRef = useRef(null);
   const skeleton2ImageRef = useRef(null);
@@ -435,6 +428,92 @@ const MiniSoccer = () => {
 
   const crowdSpritesRef = useRef([]);
   const [crowdLoaded, setCrowdLoaded] = useState(false);
+
+  const loadCrowdSprites = async () => {
+  console.log('🎭 Loading new crowd sprites...');
+  
+  const sprites = [];
+  const randomIds = Array.from({ length: CROWD_COUNT }, () =>
+    Math.floor(Math.random() * 20000)
+  );
+
+  const spritePromises = randomIds.map(async (id) => {
+    const url = `https://corsproxy.io/?${encodeURIComponent(
+      `https://files.meebits.app/sprites/${id}.png`
+    )}`;
+
+    try {
+      const img = await loadImageWithRetry(url, 3, 1000, 'crowd');
+      sprites.push({ img, offset: Math.random() * Math.PI * 2 });
+    } catch (error) {
+      console.warn(`Skipping failed crowd sprite: ${id}`);
+    }
+  });
+
+  await Promise.all(spritePromises);
+
+  if (sprites.length >= CROWD_COUNT * 0.8) {
+    crowdSpritesRef.current = sprites;
+    setCrowdLoaded(true);
+    console.log(`✅ New crowd loaded: ${sprites.length}/${CROWD_COUNT} sprites`);
+    return true;
+  } else {
+    console.error(`❌ Not enough crowd sprites loaded: ${sprites.length}/${CROWD_COUNT}`);
+    return false;
+  }
+};
+
+const loadSkeletonSprites = async () => {
+  console.log('💀 Loading new skeleton sprites...');
+  
+  let skeleton1Success = false;
+  let skeleton2Success = false;
+
+  const randomIndex1 = Math.floor(Math.random() * skeleAvatars.length);
+  const randomIndex2 = Math.floor(Math.random() * skeleAvatars.length);
+
+  const skeletonPromises = [
+    loadImageWithRetry(
+      `https://corsproxy.io/?${encodeURIComponent(
+        `https://files.meebits.app/sprites/${skeleAvatars[randomIndex1]}.png`
+      )}`,
+      3,
+      1000,
+      'skeleton 1'
+    ).then(img => {
+      skeleton1ImageRef.current = img;
+      setSkeleton1Loaded(true);
+      skeleton1Success = true;
+      console.log('✅ Skeleton 1 loaded');
+    }).catch(err => {
+      console.error('Failed to load skeleton 1:', err);
+      skeleton1Success = false;
+    }),
+
+    loadImageWithRetry(
+      `https://corsproxy.io/?${encodeURIComponent(
+        `https://files.meebits.app/sprites/${skeleAvatars[randomIndex2]}.png`
+      )}`,
+      3,
+      1000,
+      'skeleton 2'
+    ).then(img => {
+      skeleton2ImageRef.current = img;
+      setSkeleton2Loaded(true);
+      skeleton2Success = true;
+      console.log('✅ Skeleton 2 loaded');
+    }).catch(err => {
+      console.error('Failed to load skeleton 2:', err);
+      skeleton2Success = false;
+    })
+  ];
+
+  await Promise.all(skeletonPromises);
+  
+  const success = skeleton1Success || skeleton2Success;
+  setSkeletonsLoaded(success);
+  return success;
+};
 
   const loadImageWithRetry = (url, maxRetries = 4, retryDelay = 1000) => {
     return new Promise((resolve, reject) => {
@@ -559,7 +638,8 @@ const MiniSoccer = () => {
     deathAnimations: [],
     skeletonsSpawned: false,        // ADD: Track if skeletons have spawned
     skeletonSpawnTimer: 0,           // ADD: Count frames until spawn
-    skeletonSpawnAnimations: []      // ADD: Track spawn animations
+    skeletonSpawnAnimations: [], // ADD: Track spawn animations
+      lastTimeUpdate: 0      
   });
 
   const animationRef = useRef(null);
@@ -822,7 +902,7 @@ const MiniSoccer = () => {
     console.log(`🎮 Loading ${label} sprite: ${id}`);
 
     try {
-      const img = await loadImageWithRetry(spriteUrl, 3, 1000, isPlayer ? 'human player' : 'ai player');
+      const img = await loadImageWithRetry(spriteUrl, 0, 2500, isPlayer ? 'human player' : 'ai player');
       ref.current = img;
       setLoaded(true);
       console.log(`✅ ${label} sprite loaded: ${id}`);
@@ -864,15 +944,6 @@ const MiniSoccer = () => {
   }, [gameState, crowdAudioLoaded]); // ✅ ADD crowdAudioLoaded to dependencies
 
 
-  const getDirectionRow = (dirX, dirY) => {
-    const angle = Math.atan2(dirY, dirX);
-    const deg = (angle * 180 / Math.PI + 360) % 360;
-    if (deg >= 315 || deg < 45) return 0;
-    if (deg >= 45 && deg < 135) return 3;
-    if (deg >= 135 && deg < 225) return 2;
-    return 1;
-  };
-
   // ADD THIS HELPER FUNCTION
   const playDeathSound = () => {
     if (deathSoundRef.current) {
@@ -886,49 +957,77 @@ const MiniSoccer = () => {
     }
   };
 
-  const drawSprite = (ctx, player, isSelected, isPossessor) => {
-    let img, isLoaded;
+// ✅ CACHE SHADOW STYLES (outside the function)
+const SHADOW_STYLES = {
+  possessor: { blur: 25, color: '#ffffff33' },
+  selected: { blur: 25, color: '#fbbe243d' }
+};
 
-    if (player.team === 'skeleton') {
-      img = player.spriteRef.current;
-      isLoaded = img !== null;
-    } else {
-      img = player.team === 'player' ? spriteImageRef.current : aiSpriteImageRef.current;
-      isLoaded = player.team === 'player' ? spriteLoaded : aiSpriteLoaded;
-    }
-
-    if (!img || !isLoaded) {
-      ctx.fillStyle = player.team === 'player' ? 'rgba(255, 255, 0, 0.5)' : 'rgba(0, 255, 255, 0.5)';
-      ctx.beginPath(); ctx.arc(player.x, player.y, PLAYER_SIZE / 2, 0, Math.PI * 2); ctx.fill();
-      return;
-    }
-    const isMoving = Math.abs(player.vx) > 0.1 || Math.abs(player.vy) > 0.1;
-    const row = getDirectionRow(player.lastDir.x, player.lastDir.y);
-    // let frameCol = isMoving ? Math.floor(player.frame * 0.4) % 2 : 0;
-
-    const walkCycle = [0, 1, 2, 1];
-    let frameCol = isMoving ? walkCycle[Math.floor(player.frame / 2) % 4] : 0;
-
-    const sx = frameCol * SPRITE_WIDTH;
-    const sy = row * SPRITE_HEIGHT;
-    const drawWidth = SPRITE_WIDTH * SPRITE_SCALE * 2.5;
-    const drawHeight = SPRITE_HEIGHT * SPRITE_SCALE * 2.5;
-    ctx.save();
-    if (isSelected || isPossessor) {
-      ctx.shadowBlur = 25;
-      ctx.shadowColor = isPossessor ? '#ffffff33' : '#fbbe243d';
-    }
-    let adjustedSY = row === 3 ? sy - 12 : sy;
-    adjustedSY = row === 2 ? adjustedSY - 10 : adjustedSY;
-    ctx.imageSmoothingEnabled = false;
-    const visualY = Math.floor(player.y - drawHeight + 25);
-    ctx.drawImage(img, sx, adjustedSY, SPRITE_WIDTH, SPRITE_HEIGHT, Math.floor(player.x - drawWidth / 2), visualY, drawWidth, drawHeight);
-    ctx.restore();
-  };
+const drawSprite = (ctx, player, isSelected, isPossessor) => {
+  let img, isLoaded;
+  
+  if (player.team === 'skeleton') {
+    img = player.spriteRef.current;
+    isLoaded = img !== null;
+  } else {
+    img = player.team === 'player' ? spriteImageRef.current : aiSpriteImageRef.current;
+    isLoaded = player.team === 'player' ? spriteLoaded : aiSpriteLoaded;
+  }
+  
+  if (!img || !isLoaded) {
+    ctx.fillStyle = player.team === 'player' ? 'rgba(255, 255, 0, 0.5)' : 'rgba(0, 255, 255, 0.5)';
+    ctx.beginPath();
+    ctx.arc(player.x, player.y, PLAYER_SIZE / 2, 0, Math.PI * 2);
+    ctx.fill();
+    return;
+  }
+  
+  const isMoving = Math.abs(player.vx) > 0.1 || Math.abs(player.vy) > 0.1;
+  const row = GameEngine.getDirectionRow(player.lastDir.x, player.lastDir.y);
+  
+  // ✅ OPTIMIZE: Pre-calculated walk cycle
+  const walkCycle = [0, 1, 2, 1];
+  let frameCol = isMoving ? walkCycle[Math.floor(player.frame / 2) % 4] : 0;
+  
+  const sx = frameCol * SPRITE_WIDTH;
+  const sy = row * SPRITE_HEIGHT;
+  
+  // ✅ CACHE CONSTANTS
+  const drawWidth = SPRITE_WIDTH * SPRITE_SCALE * 2.5;
+  const drawHeight = SPRITE_HEIGHT * SPRITE_SCALE * 2.5;
+  
+  // ✅ OPTIMIZE: Only save/restore if needed
+  const needsShadow = isSelected || isPossessor;
+  if (needsShadow) ctx.save();
+  
+  if (isPossessor) {
+    ctx.shadowBlur = SHADOW_STYLES.possessor.blur;
+    ctx.shadowColor = SHADOW_STYLES.possessor.color;
+  } else if (isSelected) {
+    ctx.shadowBlur = SHADOW_STYLES.selected.blur;
+    ctx.shadowColor = SHADOW_STYLES.selected.color;
+  }
+  
+  let adjustedSY = row === 3 ? sy - 12 : row === 2 ? sy - 10 : sy;
+  
+  ctx.imageSmoothingEnabled = false;
+  const visualY = Math.floor(player.y - drawHeight + 25);
+  ctx.drawImage(
+    img,
+    sx, adjustedSY,
+    SPRITE_WIDTH, SPRITE_HEIGHT,
+    Math.floor(player.x - drawWidth / 2), visualY,
+    drawWidth, drawHeight
+  );
+  
+  if (needsShadow) ctx.restore();
+};
 
   const drawStadium = (ctx) => {
-    ctx.fillStyle = '#1e293b'; ctx.fillRect(0, 0, FIELD_WIDTH, CROWD_HEIGHT);
-    ctx.strokeStyle = '#334155'; ctx.lineWidth = 1;
+    ctx.fillStyle = '#1e293b'; 
+    ctx.fillRect(0, 0, FIELD_WIDTH, CROWD_HEIGHT);
+    ctx.strokeStyle = '#334155'; 
+    ctx.lineWidth = 1;
     for (let i = 0; i <= CROWD_ROWS; i++) {
       ctx.beginPath(); ctx.moveTo(0, i * 32 + 10); ctx.lineTo(FIELD_WIDTH, i * 32 + 10); ctx.stroke();
     }
@@ -1022,14 +1121,32 @@ const MiniSoccer = () => {
     window.addEventListener('keyup', handleKeyUp);
 
     const gameLoop = () => {
-      const game = gameRef.current;
+        // ✅ CALCULATE DELTA TIME
+        const game = gameRef.current;
+        const timestamp = Date.now();
+  if (!game.lastFrameTime) game.lastFrameTime = timestamp;
+  const deltaTime = timestamp - game.lastFrameTime;
+  game.lastFrameTime = timestamp;
+  
+  // ✅ SKIP FRAME IF TOO SLOW (prevent death spiral)
+  if (deltaTime > 100) {
+    animationRef.current = requestAnimationFrame(gameLoop);
+    return;
+  }
       const ball = game.ball;
       if (!game.gameStartTime) {
         game.gameStartTime = Date.now();
       }
+
       const elapsedSeconds = (Date.now() - game.gameStartTime) / 1000;
       const remaining = settings.duration - elapsedSeconds;
-      setTimeRemaining(Math.max(0, remaining));
+
+      // ✅ ONLY UPDATE STATE EVERY 100ms (not every frame)
+      const currentTime = Date.now();
+      if (!game.lastTimeUpdate || currentTime - game.lastTimeUpdate > 100) {
+        setTimeRemaining(Math.max(0, remaining));
+        game.lastTimeUpdate = currentTime;
+      }
 
       if (remaining <= 0) {
         setGameState('gameOver');
@@ -1350,30 +1467,23 @@ const MiniSoccer = () => {
           return anim.progress < anim.duration;
         });
 
-        [...game.players, ...game.ai].forEach(p => {
-          if (!p.alive && p.team === 'player') return; // Only skip dead players
-          p.x += p.vx; p.y += p.vy;
-          p.x = Math.max(PLAYER_SIZE / 2, Math.min(FIELD_WIDTH - PLAYER_SIZE / 2, p.x));
-          p.y = Math.max(CROWD_HEIGHT + PLAYER_SIZE / 2, Math.min(FIELD_HEIGHT - PLAYER_SIZE / 2, p.y));
+// ✅ BATCH ALL POSITION UPDATES
+const allEntities = [...game.players, ...game.ai, ...game.skeletons];
 
-          // ✅ GOALKEEPER CONSTRAINTS
-          if (p.team === 'ai' && p.role === 'goalkeeper' && (difficulty === 'medium' || difficulty === 'hard')) {
-            // Goalkeeper can't leave defensive third
-            const minX = (FIELD_WIDTH * 2 / 3);  // Stay in right third
-            const maxX = FIELD_WIDTH - PLAYER_SIZE / 2;
-            p.x = Math.max(minX, Math.min(maxX, p.x));
-
-            // Restrict to goal area vertically
-            const goalTop = (500 / 2) - (GOAL_HEIGHT / 2) + CROWD_HEIGHT;
-            const goalBottom = goalTop + GOAL_HEIGHT;
-            p.y = Math.max(goalTop, Math.min(goalBottom, p.y));
-          }
-          // ✅ REGULAR PLAYER/ATTACKER CONSTRAINTS
-          else {
-            p.x = Math.max(PLAYER_SIZE / 2, Math.min(FIELD_WIDTH - PLAYER_SIZE / 2, p.x));
-            p.y = Math.max(CROWD_HEIGHT + PLAYER_SIZE / 2, Math.min(FIELD_HEIGHT - PLAYER_SIZE / 2, p.y));
-          }
-        });
+for (let i = 0; i < allEntities.length; i++) {
+  const p = allEntities[i];
+  if (!p.alive && p.team === 'player') continue;
+  
+  // Update position
+  p.x += p.vx;
+  p.y += p.vy;
+  
+  // Apply constraints (using extracted function)
+  GameEngine.applyPositionConstraints(
+    p, FIELD_WIDTH, FIELD_HEIGHT, CROWD_HEIGHT,
+    PLAYER_SIZE, p.role, difficulty, GOAL_HEIGHT
+  );
+}
 
         if (game.possessor !== null) {
           const p = game.players[game.possessor];
@@ -1394,8 +1504,12 @@ const MiniSoccer = () => {
           game.players.forEach((p, idx) => {
             if (!p.alive) return;
             if (p.shotTimer === 0) {
-              const dist = Math.sqrt((ball.x - p.x) ** 2 + (ball.y - p.y) ** 2);
-              if (dist < PLAYER_SIZE / 2 + BALL_RADIUS + 2) game.possessor = idx;
+              const distSq = (ball.x - p.x) ** 2 + (ball.y - p.y) ** 2;
+              const collisionDistSq = (PLAYER_SIZE / 2 + BALL_RADIUS) ** 2;
+              if (distSq < collisionDistSq) {
+
+                game.possessor = idx;
+              }
             }
           });
 
@@ -1428,10 +1542,104 @@ const MiniSoccer = () => {
 
       ctx.clearRect(0, 0, FIELD_WIDTH, FIELD_HEIGHT);
       drawStadium(ctx);
-      ctx.fillStyle = '#162b0e'; ctx.fillRect(0, CROWD_HEIGHT, FIELD_WIDTH, 500);
-      ctx.strokeStyle = 'rgba(255,255,255,0.15)'; ctx.lineWidth = 3;
-      ctx.strokeRect(10, CROWD_HEIGHT + 10, FIELD_WIDTH - 20, 500 - 20);
-      ctx.beginPath(); ctx.moveTo(FIELD_WIDTH / 2, CROWD_HEIGHT); ctx.lineTo(FIELD_WIDTH / 2, FIELD_HEIGHT); ctx.stroke();
+      
+// ✅ Realistic grass field with stripes
+
+
+const darkGrass = '#175028';
+const lightGrass = '#24613b';
+
+// Draw horizontal grass stripes
+const stripeWidth = 40;
+for (let y = CROWD_HEIGHT; y < FIELD_HEIGHT; y += stripeWidth) {
+  const isLight = Math.floor((y - CROWD_HEIGHT) / stripeWidth) % 2 === 0;
+  ctx.fillStyle = isLight ? lightGrass : darkGrass;
+  ctx.fillRect(0, y, FIELD_WIDTH, stripeWidth);
+}
+
+// Add grass texture
+ctx.save();
+ctx.globalAlpha = 0.15;
+for (let i = 0; i < 500; i++) {
+  const x = Math.random() * FIELD_WIDTH;
+  const y = CROWD_HEIGHT + Math.random() * 500;
+  const size = Math.random() * 2;
+  ctx.fillStyle = Math.random() > 0.5 ? '#0f3d1f' : '#3a8f5a';
+  ctx.fillRect(x, y, size, size);
+}
+ctx.restore();
+
+// White pitch lines
+ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+ctx.lineWidth = 2.5;
+
+// Touchline (outer boundary)
+ctx.strokeRect(15, CROWD_HEIGHT + 15, FIELD_WIDTH - 30, 470);
+
+// Halfway line
+ctx.beginPath();
+ctx.moveTo(FIELD_WIDTH / 2, CROWD_HEIGHT + 15);
+ctx.lineTo(FIELD_WIDTH / 2, CROWD_HEIGHT + 485);
+ctx.stroke();
+
+// Center circle
+ctx.beginPath();
+ctx.arc(FIELD_WIDTH / 2, CROWD_HEIGHT + 250, 60, 0, Math.PI * 2);
+ctx.stroke();
+
+// Center spot
+ctx.beginPath();
+ctx.arc(FIELD_WIDTH / 2, CROWD_HEIGHT + 250, 3, 0, Math.PI * 2);
+ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+ctx.fill();
+
+// Penalty areas
+const penaltyBoxWidth = 120;
+const penaltyBoxHeight = 250;
+const penaltyBoxY = CROWD_HEIGHT + 250 - penaltyBoxHeight / 2;
+
+// Left penalty area
+ctx.strokeRect(15, penaltyBoxY, penaltyBoxWidth, penaltyBoxHeight);
+
+// Right penalty area
+ctx.strokeRect(FIELD_WIDTH - 15 - penaltyBoxWidth, penaltyBoxY, penaltyBoxWidth, penaltyBoxHeight);
+
+// Goal areas
+
+
+// Penalty spots
+ctx.beginPath();
+ctx.arc(85, CROWD_HEIGHT + 250, 3, 0, Math.PI * 2);
+ctx.fill();
+
+ctx.beginPath();
+ctx.arc(FIELD_WIDTH - 85, CROWD_HEIGHT + 250, 3, 0, Math.PI * 2);
+ctx.fill();
+
+// Corner arcs
+const cornerRadius = 8;
+
+// Top-left
+ctx.beginPath();
+ctx.arc(15, CROWD_HEIGHT + 15, cornerRadius, 0, Math.PI / 2);
+ctx.stroke();
+
+// Top-right
+ctx.beginPath();
+ctx.arc(FIELD_WIDTH - 15, CROWD_HEIGHT + 15, cornerRadius, Math.PI / 2, Math.PI);
+ctx.stroke();
+
+// Bottom-left
+ctx.beginPath();
+ctx.arc(15, CROWD_HEIGHT + 485, cornerRadius, Math.PI * 1.5, Math.PI * 2);
+ctx.stroke();
+
+// Bottom-right
+ctx.beginPath();
+ctx.arc(FIELD_WIDTH - 15, CROWD_HEIGHT + 485, cornerRadius, Math.PI, Math.PI * 1.5);
+ctx.stroke();
+
+
 
       const drawGoal = (x, isPlayerSide) => {
         ctx.save(); ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)'; ctx.lineWidth = 1;
@@ -1671,12 +1879,26 @@ const MiniSoccer = () => {
 
 
 
-  const startMatch = () => {
-    resetPositions(); // Forces all 'alive' flags to true and positions to start
-    setGameState('playing');
+const startMatch = async () => {
+  // ✅ RELOAD CROWD SPRITES BEFORE STARTING NEW GAME
+  console.log('🎮 Starting new match - loading fresh crowd...');
 
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+   setIsStartingMatch(true); // Show loading
+  
+  await loadCrowdSprites(); // Load new crowd
+  
+  // ✅ RELOAD SKELETONS IF HARD MODE
+  if (difficulty === 'hard') {
+    await loadSkeletonSprites(); // Load new skeletons
+  }
+  
+  resetPositions(); // Reset positions (no sprite loading)
+  setGameState('playing');
+
+     setIsStartingMatch(false);
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+};
 
 
   if (gameState === 'menu') {
@@ -1762,19 +1984,17 @@ const MiniSoccer = () => {
 
 
 
-          <button
-            onClick={startMatch}
-            disabled={!isAssetsReady}
-            style={!isAssetsReady ?
-              { ...styles.kickoffButton, ...styles.kickoffButtonDisabled } :
-              { ...styles.kickoffButton, ...styles.kickoffButtonEnabled }
-            }
-          >
-            {isAssetsReady
-              ? "KICK OFF"
-              : `LOADING ${loadingProgress}%...`  // ✅ SHOW PROGRESS
-            }
-          </button>
+
+<button
+  onClick={startMatch}
+  disabled={!isAssetsReady || isStartingMatch}
+  style={!isAssetsReady || isStartingMatch ?
+    { ...styles.kickoffButton, ...styles.kickoffButtonDisabled } :
+    { ...styles.kickoffButton, ...styles.kickoffButtonEnabled }
+  }
+>
+  {isStartingMatch ? "Initializing..." : isAssetsReady ? "KICK OFF" : `LOADING ${loadingProgress}%...`}
+</button>
 
           {/* ✅ ADD RETRY BUTTON */}
           {loadingError && (
@@ -1801,7 +2021,7 @@ const MiniSoccer = () => {
   if (gameState === 'gameOver') {
     return (
       <div style={styles.gameOverContainer}>
-        <Trophy size={100} color="#facc15" />
+        {playerScore > aiScore ? <Trophy size={100} color="#facc15" /> : null}
         <h1 style={styles.gameOverTitle}>
           {playerScore > aiScore ? 'Champion!' : playerScore < aiScore ? 'Defeated' : 'Draw!'}
         </h1>
