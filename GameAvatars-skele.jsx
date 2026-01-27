@@ -710,7 +710,7 @@ const loadSkeletonSprites = async () => {
           // Initialize directly at a random point in the sine wave cycle
           phase: Math.random() * Math.PI * 2,
           // This determines how fast the color pulses (try 0.05 to 0.1)
-          speed: 0.005
+          speed: 0.001
         });
       }
     }
@@ -2046,5 +2046,6 @@ const startMatch = async () => {
     </div>
   );
 };
+
 
 export default MiniSoccer;
